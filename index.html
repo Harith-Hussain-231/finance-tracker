@@ -1,0 +1,2409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Finance" />
+<meta name="theme-color" content="#141414" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Finance Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* MacroFactor look: pure black, flat charcoal cards, candy data colours */
+    --bg:#141414; --surface:#262626; --surface2:#2E2E2E; --raised:#363636;
+    --line:#2A2A2A; --lineSoft:#222222;
+    --text:#E8E8E6; --textDim:#9E9E9E; --textFaint:#7A7A7A;
+    /* one bright accent for primary; signal colours map to money meaning */
+    --accent:#9B7DF5; --accentDim:#2A2150; --accentSoft:rgba(155,125,245,.15); --accentGlow:rgba(155,125,245,.12);
+    --rust:#F5703C; --rustSoft:rgba(245,112,60,.14);
+    --amber:#F0C040; --amberSoft:rgba(240,192,64,.14);
+    --green:#34C759; --greenSoft:rgba(52,199,89,.14);
+    --blue:#4A90F0; --orange:#F5703C; --yellow:#F0C040; --purple:#8B5CF6;
+    --r-card:20px; --r-inner:14px; --r-pill:99px;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; background:var(--bg); color:var(--text); color-scheme:dark; }
+  body { font-family:'Inter',-apple-system,system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  input,select,textarea,button { font-family:inherit; font-size:16px; color:var(--text); }
+  .mono { font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  /* the signature: bold condensed all-caps display */
+  .display { font-family:'Archivo',sans-serif; font-weight:800; font-stretch:expanded; text-transform:uppercase; letter-spacing:-.01em; line-height:.98; }
+  .wrap { max-width:480px; margin:0 auto; min-height:100vh; padding:calc(54px + env(safe-area-inset-top)) 18px calc(100px + env(safe-area-inset-bottom)); }
+
+  /* hero balance — dark raised, glow */
+  .hero { position:relative; border-radius:var(--r-card); padding:22px 20px 20px; margin-bottom:22px; overflow:hidden;
+    background:var(--surface); }
+
+  /* segmented control — pill, soft active */
+  .seg { display:flex; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-pill); padding:4px; gap:3px; margin-bottom:20px; }
+  .seg button { flex:1; padding:10px 4px; font-size:12.5px; font-weight:600; border:none; background:transparent; color:var(--textDim); border-radius:var(--r-pill); transition:all .18s cubic-bezier(.4,0,.2,1); letter-spacing:.01em; }
+  .seg button.on { background:var(--text); color:var(--bg); }
+
+  /* group card */
+  .grp { background:var(--surface); border:1px solid transparent; border-radius:var(--r-card); margin-bottom:12px; overflow:hidden; }
+  .grp-head { width:100%; display:flex; justify-content:space-between; align-items:center; padding:16px 17px; background:none; border:none; text-align:left; transition:background .12s; }
+  .grp-head:active { background:var(--surface2); }
+  .row-item { display:flex; justify-content:space-between; align-items:center; padding:13px 17px; border-top:1px solid var(--lineSoft); }
+  .row-item:first-child { border-top:none; }
+
+  .wk-head { width:100%; display:flex; justify-content:space-between; align-items:center; padding:11px 17px; background:var(--surface2); border:none; border-top:1px solid var(--lineSoft); text-align:left; transition:background .12s; }
+  .wk-head:active { background:var(--raised); }
+
+  .btn { width:100%; border:none; border-radius:var(--r-inner); padding:14px; font-weight:600; font-size:14px; transition:transform .12s, opacity .12s; }
+  .btn:active { transform:scale(.985); opacity:.85; }
+  .btn-accent { background:var(--accent); color:#FFFFFF; }
+  .btn-ghost { background:var(--surface2); color:var(--text); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-line { background:transparent; color:var(--textDim); border:1px solid var(--line); }
+
+  .input { width:100%; box-sizing:border-box; -webkit-appearance:none; appearance:none; min-height:46px; border:1px solid var(--line); border-radius:var(--r-inner); padding:12px 13px; font-size:15px; background:var(--surface2); color:var(--text); font-family:inherit; }
+  .input[type="date"] { min-height:46px; line-height:1.2; }
+  .input::placeholder { color:var(--textFaint); }
+  .label { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--textDim); margin-bottom:5px; display:block; font-weight:600; }
+
+  .chip { padding:3px 9px; border-radius:var(--r-pill); font-size:11px; font-weight:600; flex-shrink:0; background:var(--amberSoft); color:var(--amber); white-space:nowrap; }
+  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+
+  .tabbar { position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; justify-content:center;
+    padding-bottom:env(safe-area-inset-bottom); background:rgba(20,20,20,.86); backdrop-filter:blur(20px) saturate(1.4); -webkit-backdrop-filter:blur(20px) saturate(1.4); border-top:1px solid var(--line); }
+  .tabbar-inner { display:flex; width:100%; max-width:480px; }
+  .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 9px; background:none; border:none; color:var(--textFaint); transition:color .15s; }
+  .tab.on { color:var(--text); }
+  .tab span { font-size:10px; font-weight:600; letter-spacing:.03em; }
+
+  .sheet-bg { position:fixed; inset:0; background:rgba(0,0,0,.66); z-index:50; display:flex; align-items:flex-end; justify-content:center; backdrop-filter:blur(4px); animation:fade .2s ease; }
+  .sheet { width:100%; max-width:480px; background:var(--surface); border:1px solid var(--line); border-bottom:none; border-radius:26px 26px 0 0; padding:22px; padding-bottom:calc(22px + env(safe-area-inset-bottom)); max-height:90vh; overflow-y:auto; animation:slideup .26s cubic-bezier(.4,0,.2,1); }
+  .full { position:fixed; inset:0; background:var(--bg); z-index:45; overflow-y:auto; }
+  @keyframes fade { from{opacity:0} to{opacity:1} }
+  @keyframes slideup { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+  .icon-btn { background:none; border:none; padding:0; display:inline-flex; align-items:center; cursor:pointer; transition:opacity .12s; }
+  .icon-btn:active { opacity:.5; }
+  .pill-btn { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:var(--r-pill); background:var(--surface2); border:1px solid var(--line); color:var(--text); font-size:13px; font-weight:600; }
+  .trunc { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:.14em; color:var(--textDim); font-weight:600; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  svg { display:block; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+"use strict";
+
+(function () {
+
+  // ---------- constants ----------
+  var THEME = {
+    paper:'#EFEDE4', card:'#FBFAF5', ink:'#222820', inkSoft:'#646B5C',
+    border:'#D8D6C8', borderSoft:'#E8E6DA', green:'#3A7150', rust:'#9F4A30',
+    rustSoft:'#F3E4DE', amber:'#B07D1E', amberSoft:'#F3E9CF'
+  };
+  var CATEGORY_COLORS = {
+    'Income':'#34C759','Housing':'#F0A040','Bills':'#4A90F0','Council Tax':'#8B5CF6',
+    'Phone & Internet':'#40C0D0','Food':'#F5703C','Transport':'#FF6B5B','Personal':'#F0C040',
+    'Childcare':'#F080B0','Debt & Cards':'#FF5B5B','Outings':'#5BA0FF','Other':'#9A9A9A'
+  };
+  var CATEGORY_NAMES = Object.keys(CATEGORY_COLORS);
+  var DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var DEFAULT_RECURRING = [
+    {name:'Salary',type:'income',amount:3171,cadence:'monthly',dayOfMonth:28,group:''},
+    {name:'Mortgage',type:'expense',amount:1500,cadence:'monthly',dayOfMonth:1,group:'Home'},
+    {name:'Utilities',type:'expense',amount:220,cadence:'monthly',dayOfMonth:1,group:'Home'},
+    {name:'Council Tax',type:'expense',amount:165,cadence:'monthly',dayOfMonth:1,group:'Home'},
+    {name:'Phone',type:'expense',amount:20,cadence:'monthly',dayOfMonth:1,group:'Bills'},
+    {name:'Internet',type:'expense',amount:37,cadence:'monthly',dayOfMonth:15,group:'Bills'},
+    {name:'Fuel',type:'expense',amount:100,cadence:'monthly',dayOfMonth:8,group:'Car'},
+    {name:'Amex',type:'expense',amount:500,cadence:'monthly',dayOfMonth:19,variable:true,group:'Debt'},
+    {name:'Food shop',type:'expense',amount:150,cadence:'weekly',dayOfWeek:1,group:'Living'},
+    {name:'Personal',type:'expense',amount:50,cadence:'weekly',dayOfWeek:1,group:'Living'}
+  ];
+  var STORAGE_KEY = 'wc-planner-html-v5dark';
+  var HORIZON = 26;
+  var CURSYM = {GBP:'£',USD:'$',EUR:'€'};
+
+  // ---------- date / format helpers ----------
+  function genId(){ return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function pad(n){ return n<10?'0'+n:''+n; }
+  function isoDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function todayISO(){ return isoDate(new Date()); }
+  function parseISO(s){ return new Date(s+'T00:00:00'); }
+  function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function getMonday(v){ var d = typeof v==='string'?parseISO(v):new Date(v); var day=d.getDay(); return addDays(d,(day===0?-6:1)-day); }
+  function fmt(a,c){ c=c||'GBP'; var s=CURSYM[c]||'£'; var v=Math.abs(a).toLocaleString('en-GB',{maximumFractionDigits:0}); return (a<0?'\u2212':'')+s+v; }
+  function fmtSigned(a,c){ c=c||'GBP'; var s=CURSYM[c]||'£'; var v=Math.abs(a).toLocaleString('en-GB',{maximumFractionDigits:0}); var sign=a>0?'+':a<0?'\u2212':''; return sign+s+v; }
+  function weekLabel(m){ var mon=parseISO(m), sun=addDays(mon,6); if(m===isoDate(getMonday(new Date())))return 'This week'; return mon.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' \u2013 '+sun.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+  function dayLabel(s){ return parseISO(s).toLocaleDateString('en-GB',{weekday:'short',day:'numeric'}); }
+  function monthSpan(m){ return parseISO(m).toLocaleDateString('en-GB',{month:'long',year:'numeric'}); }
+  function monthlyEquiv(item){
+    if(item.cadence==='weekly') return (item.amount*52/12)/((item.interval&&item.interval>0)?item.interval:1);
+    return item.amount/((item.monthInterval&&item.monthInterval>0)?item.monthInterval:1);
+  }
+
+  function seed(){
+    return {
+      currentBalance:1790, asOfDate:todayISO(), currency:'GBP', payDay:28, viewMode:'weekly',
+      recurring: DEFAULT_RECURRING.map(function(r,i){ var o={}; for(var k in r)o[k]=r[k]; o.id='r'+i; o.active=true; o.order=i; return o; }),
+      oneOffs:[], skips:{}, overrides:{}
+    };
+  }
+
+  // ---------- persistence (localStorage works in Safari / Home Screen) ----------
+  var storageOK = true;
+  function migrate(d){
+    // Fill defaults for fields added in later versions so older exports import cleanly.
+    // If data is missing/corrupt (null, non-object), fall back to a fresh seed so the app
+    // always has a valid object to work with rather than crashing downstream.
+    if(!d || typeof d!=='object') d=seed();
+    if(!Array.isArray(d.recurring)) d.recurring=[];
+    var seenIds={};
+    d.recurring.forEach(function(r,i){
+      if(r.id===undefined||r.id===null||r.id==='') r.id=genId();
+      if(seenIds[r.id]) r.id=genId(); // dedupe collisions from hand-edited/corrupt imports
+      seenIds[r.id]=true;
+      if(r.active===undefined) r.active=true;
+      if(r.group===undefined) r.group='';
+      if(r.order===undefined) r.order=i;
+      if(r.cadence==='weekly' && (r.interval===undefined||r.interval===null)) r.interval=1;
+      if(r.cadence==='monthly' && (r.monthInterval===undefined||r.monthInterval===null)) r.monthInterval=1;
+    });
+    if(!d.oneOffs) d.oneOffs=[];
+    if(!d.skips) d.skips={};
+    if(!d.overrides) d.overrides={};
+    if(!d._debtOvKeys||typeof d._debtOvKeys!=='object') d._debtOvKeys={};
+    if(!d.oneOffOverrides) d.oneOffOverrides={}; // reserved
+    if(d.payDay===undefined) d.payDay=28;
+    if(d.viewMode===undefined) d.viewMode='weekly';
+    if(!d.asOfDate) d.asOfDate=todayISO();
+    if(d.snapshot===undefined) d.snapshot=null; // frozen forecast: {date, data} or null
+    // Credit card config (one card). Off until enabled.
+    if(d.card===undefined){
+      d.card={ enabled:false, name:'Amex', statementStartDay:8, paymentDay:19, paymentMonthOffset:0, rollWeekend:true, manual:{}, openingAmount:0, openingPaymentDate:'' };
+    } else {
+      if(d.card.manual===undefined) d.card.manual={};
+      if(d.card.rollWeekend===undefined) d.card.rollWeekend=true;
+      if(d.card.statementStartDay===undefined) d.card.statementStartDay=8;
+      if(d.card.paymentDay===undefined) d.card.paymentDay=19;
+      if(d.card.paymentMonthOffset===undefined) d.card.paymentMonthOffset=0;
+      if(d.card.name===undefined) d.card.name='Amex';
+      if(!d.card.consumed||typeof d.card.consumed!=='object') d.card.consumed={};
+      if(!d.card.consumed||typeof d.card.consumed!=='object') d.card.consumed={};
+    }
+    // Debts (paydown trackers). Each owns a linked recurring expense so payments flow into the forecast.
+    if(!Array.isArray(d.debts)) d.debts=[];
+    d.debts.forEach(function(db){
+      if(db.id===undefined||db.id===null||db.id==='') db.id=genId();
+      if(db.rollWeekend===undefined) db.rollWeekend=true;
+      if(!db.overrides||typeof db.overrides!=='object') db.overrides={};
+      if(db.cadence!=='weekly'&&db.cadence!=='monthly') db.cadence='monthly';
+      if(db.cadence==='weekly'&&(!db.interval||db.interval<1)) db.interval=1;
+      if(db.group===undefined) db.group='Debt';
+      if(db.onCard===undefined) db.onCard=false;
+    });
+    // Savings pots. Each owns a linked recurring expense (the monthly contribution) that deducts
+    // from the forecast, like debts. Plus optional one-off top-ups and a goal (target + date).
+    if(!Array.isArray(d.pots)) d.pots=[];
+    d.pots.forEach(function(p){
+      if(p.id===undefined||p.id===null||p.id==='') p.id=genId();
+      if(p.rollWeekend===undefined) p.rollWeekend=true;
+      if(typeof p.contribution!=='number') p.contribution=0;
+      if(typeof p.startBalance!=='number') p.startBalance=0;
+      if(!Array.isArray(p.topups)) p.topups=[];
+      if(p.paymentDay===undefined) p.paymentDay=1;
+      if(p.group===undefined) p.group='Savings';
+    });
+    // Self-heal: if a linked expense exists (sourceDebtId/sourcePotId) but its parent debt/pot is
+    // missing — e.g. data saved by an older build that dropped them on import — rebuild a best-effort
+    // parent so it reappears on the Money screen. Amounts recoverable from the expense; original/target
+    // can't be recovered exactly (estimated for debts, left blank for pots to re-enter).
+    (function(){
+      if(!Array.isArray(d.recurring)) return;
+      var debtIds={}; d.debts.forEach(function(x){debtIds[x.id]=true;});
+      var potIds={}; d.pots.forEach(function(x){potIds[x.id]=true;});
+      d.recurring.forEach(function(it){
+        if(it.sourceDebtId && !debtIds[it.sourceDebtId]){
+          debtIds[it.sourceDebtId]=true;
+          var weekly=it.cadence==='weekly';
+          d.debts.push({ id:it.sourceDebtId, name:it.name||'Debt', original:(it.amount||0)*12, payment:it.amount||0,
+            startDate:it.startDate||todayISO(), paymentDay:it.dayOfMonth||1, cadence:weekly?'weekly':'monthly',
+            interval:it.interval||1, dayOfWeek:it.dayOfWeek, rollWeekend:it.rollWeekend!==false,
+            group:it.group||'Debt', onCard:!!it.onCard, overrides:{}, _recovered:true });
+        }
+        if(it.sourcePotId && !potIds[it.sourcePotId]){
+          potIds[it.sourcePotId]=true;
+          d.pots.push({ id:it.sourcePotId, name:it.name||'Savings', contribution:it.amount||0, startBalance:0,
+            startDate:it.startDate||todayISO(), paymentDay:it.dayOfMonth||1, rollWeekend:it.rollWeekend!==false,
+            group:it.group||'Savings', target:0, targetDate:it.endDate||'', topups:[], _recovered:true });
+        }
+      });
+    })();
+    return d;
+  }
+  function loadData(){
+    try { var raw=localStorage.getItem(STORAGE_KEY); return migrate(raw?JSON.parse(raw):seed()); }
+    catch(e){ storageOK=false; return migrate(seed()); }
+  }
+  function saveData(d){
+    if(typeof root!=='undefined' && root) root._bgBuilt=false; // data changed → force full rebuild next render
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); storageOK=true; return true; }
+    catch(e){ storageOK=false; return false; }
+  }
+
+  // ----- England & Wales bank holidays -----
+  // Computed per year (with weekend substitutes), cached. Covers the standard set; one-off
+  // holidays (jubilees etc.) aren't predictable and would be handled via a per-item override.
+  var _bhCache={};
+  function nthWeekdayOfMonth(y, month, weekday, n){ // weekday: 0=Sun..6=Sat; n=1 first, etc.
+    var d=new Date(y,month,1); var count=0;
+    while(d.getMonth()===month){ if(d.getDay()===weekday){ count++; if(count===n) return new Date(d); } d=addDays(d,1); }
+    return null;
+  }
+  function lastWeekdayOfMonth(y, month, weekday){
+    var d=new Date(y,month+1,0); // last day of month
+    while(d.getDay()!==weekday) d=addDays(d,-1);
+    return d;
+  }
+  function easterSunday(y){ // Anonymous Gregorian algorithm
+    var a=y%19, b=Math.floor(y/100), c=y%100, d=Math.floor(b/4), e=b%4,
+        f=Math.floor((b+8)/25), g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30,
+        i=Math.floor(c/4), k=c%4, l=(32+2*e+2*i-h-k)%7, m=Math.floor((a+11*h+22*l)/451),
+        month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1;
+    return new Date(y, month-1, day);
+  }
+  function substitute(d, taken){ // bump weekend holiday to next free weekday
+    var x=new Date(d);
+    while(x.getDay()===0 || x.getDay()===6 || taken[isoDate(x)]) x=addDays(x,1);
+    return x;
+  }
+  function bankHolidays(y){
+    if(_bhCache[y]) return _bhCache[y];
+    var set={}; var taken={};
+    function add(d){ var k=isoDate(d); set[k]=true; taken[k]=true; }
+    // New Year's Day (+ substitute)
+    add(substitute(new Date(y,0,1), taken));
+    // Easter
+    var es=easterSunday(y);
+    add(addDays(es,-2)); // Good Friday
+    add(addDays(es,1));  // Easter Monday
+    // Early May (first Monday), Spring (last Monday May), Summer (last Monday Aug)
+    add(nthWeekdayOfMonth(y,4,1,1));
+    add(lastWeekdayOfMonth(y,4,1));
+    add(lastWeekdayOfMonth(y,7,1));
+    // Christmas + Boxing Day (+ substitutes, Boxing after Christmas)
+    var xmas=substitute(new Date(y,11,25), taken); add(xmas);
+    add(substitute(new Date(y,11,26), taken));
+    _bhCache[y]=set;
+    return set;
+  }
+  function isBankHoliday(d){ return !!bankHolidays(d.getFullYear())[isoDate(d)]; }
+  function isNonWorking(d){ var day=d.getDay(); return day===0||day===6||isBankHoliday(d); }
+
+  function rollIfWeekend(d){
+    // Expenses: roll FORWARD to the next working day (skips weekends and bank holidays).
+    var x=new Date(d); var guard=0;
+    while(isNonWorking(x) && guard++<14) x=addDays(x,1);
+    return x;
+  }
+  function rollToFriday(d){
+    // Income: roll BACK to the previous working day (skips weekends and bank holidays).
+    var x=new Date(d); var guard=0;
+    while(isNonWorking(x) && guard++<14) x=addDays(x,-1);
+    return x;
+  }
+
+  // ----- Credit card cycle maths -----
+  // A statement cycle runs from statementStartDay of one month to (startDay-1) of the next.
+  // Returns {start, end, closeMonthY, closeMonthM, key} for the cycle containing `date`.
+  function cycleFor(date, startDay){
+    var d=new Date(date); d.setHours(0,0,0,0);
+    var y=d.getFullYear(), m=d.getMonth();
+    // start of cycle is startDay in this month if date>=startDay, else previous month
+    var startThis=new Date(y,m,Math.min(startDay,new Date(y,m+1,0).getDate()));
+    var start;
+    if(d>=startThis){ start=startThis; }
+    else { var pm=m-1, py=y; if(pm<0){pm=11;py--;} start=new Date(py,pm,Math.min(startDay,new Date(py,pm+1,0).getDate())); }
+    // end = day before next cycle start
+    var sy=start.getFullYear(), sm=start.getMonth();
+    var nm=sm+1, ny=sy; if(nm>11){nm=0;ny++;}
+    var nextStart=new Date(ny,nm,Math.min(startDay,new Date(ny,nm+1,0).getDate()));
+    var end=addDays(nextStart,-1);
+    // the cycle "closes" on `end`; close month is end's month
+    return { start:start, end:end, closeY:end.getFullYear(), closeM:end.getMonth(), key:isoDate(start) };
+  }
+  // payment date for a cycle that closes in (closeY, closeM).
+  // Payment month is derived automatically: if the payment day-of-month falls on or before the
+  // cycle's close day, the payment must be the following month (it can't precede the close in the
+  // same month); otherwise it's the same month. closeDay = day-of-month the cycle closes (its end).
+  // roll: 'mon' rolls weekends forward to Monday, 'fri' rolls back to Friday, falsy = no roll.
+  function cardPaymentDate(closeY, closeM, paymentDay, roll, closeDay){
+    var offset = (closeDay!==undefined && paymentDay<=closeDay) ? 1 : 0;
+    var py=closeY, pm=closeM+offset;
+    while(pm>11){ pm-=12; py++; }
+    var dim=new Date(py,pm+1,0).getDate();
+    var pd=new Date(py, pm, Math.min(paymentDay,dim));
+    if(roll==='fri') return rollToFriday(pd);
+    if(roll==='mon' || roll===true) return rollIfWeekend(pd);
+    return pd;
+  }
+  var __todayOverride=null; // when set (snapshot view), the whole app projects from this date
+  function todayMidnight(){ if(__todayOverride){ var o=new Date(__todayOverride); o.setHours(0,0,0,0); return o; } var t=new Date(); t.setHours(0,0,0,0); return t; }
+
+  // ----- Debt paydown schedule -----
+  // Builds a fixed schedule of periods (weekly or monthly) from original ÷ payment. The number of
+  // periods and the end date are fixed (no reflow); per-period amounts can be overridden. Dates roll
+  // for weekends/bank holidays. A period auto-counts as paid once its (rolled) date is on/before today.
+  // The debt OWNS a linked recurring expense (see syncDebtExpense) so payments flow into the forecast.
+  function debtPeriodDate(debt, i){
+    var start=parseISO(debt.startDate||todayISO());
+    if(debt.cadence==='weekly'){
+      var dt=addDays(start, i*7*(debt.interval&&debt.interval>0?debt.interval:1));
+    } else {
+      var payDay=debt.paymentDay||start.getDate();
+      var dt=new Date(start.getFullYear(), start.getMonth()+i, Math.min(payDay, new Date(start.getFullYear(), start.getMonth()+i+1, 0).getDate()));
+    }
+    if(debt.rollWeekend!==false) dt=rollIfWeekend(dt);
+    return dt;
+  }
+  // Reads a per-payment override in either legacy (plain number = amount) or new ({amount,date}) form.
+  function debtOverride(debt, i){
+    if(!debt.overrides) return null;
+    var o=debt.overrides[i];
+    if(o===undefined||o===null) return null;
+    if(typeof o==='number') return { amount:o, date:undefined };
+    return { amount:(o.amount!==undefined&&o.amount!==null)?o.amount:undefined, date:o.date||undefined };
+  }
+  function debtSchedule(debt){
+    // ───────────────────────────────────────────────────────────────────────────
+    // FUTURE FEATURE (logged 2026-06-28) — "Option B": recalculating amortisation.
+    // CURRENT behaviour: a debt is a FIXED plan = ceil(original/payment) equal
+    // payments, last one trued-up. Per-payment overrides change only THAT row; they
+    // do NOT ripple forward. So overpaying a month makes the total exceed `original`
+    // and the payoff date does NOT move earlier. This is correct for fixed payments
+    // (how it's used today) but wrong if the user deviates.
+    // WANTED later: when any payment is overridden, re-derive the REMAINING schedule
+    // from "balance still owed" so overpayments shorten the loan / move payoff earlier,
+    // underpayments extend it, and `remaining`/progress stay accurate. Touch points:
+    //   - this function (rebuild tail from running remaining, not fixed payment*N)
+    //   - syncDebtExpense() endDate (payoff shifts when schedule shortens)
+    //   - the Money tab progress bar + "Clears <month>" line read from sch.payoff
+    // Keep the fixed-plan path as the default; amortisation is opt-in per debt.
+    // ───────────────────────────────────────────────────────────────────────────
+    var payment = debt.payment>0 ? debt.payment : 0;
+    var original = debt.original>0 ? debt.original : 0;
+    var today = todayMidnight();
+    var n = (payment>0) ? Math.ceil(original/payment) : 0;
+    if(n>600) n=600; // safety cap
+    var rows=[]; var paidTotal=0;
+    for(var i=0;i<n;i++){
+      var ov=debtOverride(debt, i);
+      var dt = (ov&&ov.date) ? parseISO(ov.date) : debtPeriodDate(debt, i);
+      var defAmt = (i===n-1) ? Math.max(0, Math.round((original-(payment*(n-1)))*100)/100) : payment;
+      var amt = (ov&&ov.amount!==undefined) ? ov.amount : defAmt;
+      var paid = dt<=today;
+      if(paid) paidTotal+=amt;
+      rows.push({ index:i, date:isoDate(dt), amount:amt, paid:paid, overridden:!!ov });
+    }
+    var paidRemaining = Math.max(0, Math.round((original-paidTotal)*100)/100);
+    // Defensive: drop a spurious trailing £0 payment (can arise from rounding when
+    // payment divides original almost exactly), so the schedule never shows an empty final row.
+    while(rows.length>1 && rows[rows.length-1].amount<=0 && !rows[rows.length-1].overridden){
+      rows.pop();
+    }
+    var payoff = rows.length ? rows[rows.length-1].date : null;
+    return { rows:rows, original:original, paidTotal:Math.round(paidTotal*100)/100, remaining:paidRemaining, payoff:payoff };
+  }
+  // Create or update the recurring expense a debt owns. The expense carries the debt's payment as a
+  // read-only amount, ends on the payoff date, and is tagged sourceDebtId so the forecast & Manage
+  // treat it as debt-linked. Deleting the debt removes it.
+  function syncDebtExpense(debt){
+    var sch=debtSchedule(debt);
+    if(!Array.isArray(data.recurring)) data.recurring=[];
+    var item=data.recurring.filter(function(r){return r.sourceDebtId===debt.id;})[0];
+    if(!item){
+      var maxOrder=data.recurring.reduce(function(m,r){return Math.max(m,r.order||0);},0);
+      item={ id:genId(), sourceDebtId:debt.id, type:'expense', active:true, order:maxOrder+1 };
+      data.recurring.push(item);
+    }
+    item.name = debt.name||'Debt';
+    item.amount = debt.payment||0;
+    item.cadence = debt.cadence==='weekly'?'weekly':'monthly';
+    if(item.cadence==='weekly'){ item.interval=(debt.interval&&debt.interval>0)?debt.interval:1; item.dayOfWeek=debt.dayOfWeek||parseISO(debt.startDate||todayISO()).getDay()||1; if(item.dayOfWeek===0)item.dayOfWeek=7; }
+    else { item.monthInterval=1; item.dayOfMonth=debt.paymentDay||parseISO(debt.startDate||todayISO()).getDate(); }
+    item.rollWeekend = debt.rollWeekend!==false;
+    item.group = debt.group||'Debt';
+    item.onCard = !!debt.onCard;
+    item.startDate = debt.startDate||todayISO();
+    item.endDate = sch.payoff || undefined; // auto-stop when paid off
+    reconcileDebtOverrides(debt, item);
+  }
+  // Apply per-payment exceptions onto the recurring rule using the engine's existing mechanisms:
+  //  - amount-only override -> data.overrides[itemId|scheduledDate]
+  //  - date override        -> skip the scheduled occurrence + emit a debt-owned one-off at the new date
+  // Clears any previous debt-owned entries first so it's idempotent.
+  function reconcileDebtOverrides(debt, item){
+    data.overrides=data.overrides||{}; data.skips=data.skips||{}; data.oneOffs=data.oneOffs||[];
+    // clear prior debt-owned one-offs for this debt
+    data.oneOffs=data.oneOffs.filter(function(o){ return o.sourceDebtId!==debt.id; });
+    // clear prior debt-owned skips/overrides for this item (keys we manage start with item.id+'|')
+    Object.keys(data.skips).forEach(function(k){ if(k.indexOf(item.id+'|')===0 && data.skips[k]==='debt') delete data.skips[k]; });
+    Object.keys(data.overrides).forEach(function(k){ if(k.indexOf(item.id+'|')===0 && data._debtOvKeys && data._debtOvKeys[k]) delete data.overrides[k]; });
+    data._debtOvKeys={};
+    var idx = Object.keys(debt.overrides||{});
+    idx.forEach(function(iStr){
+      var i=parseInt(iStr,10);
+      var ov=debtOverride(debt, i);
+      if(!ov) return;
+      var schedDate=isoDate(debtPeriodDate(debt, i)); // the rule's natural date for this period
+      if(ov.date && ov.date!==schedDate){
+        // date moved: drop the rule's occurrence, emit a debt one-off at the new date
+        data.skips[item.id+'|'+schedDate]='debt';
+        data.oneOffs.push({ id:genId(), sourceDebtId:debt.id, date:ov.date, name:(debt.name||'Debt'), type:'expense', amount:(ov.amount!==undefined?ov.amount:(debt.payment||0)), onCard:!!debt.onCard });
+      } else if(ov.amount!==undefined){
+        // amount-only change on the natural date
+        data.overrides[item.id+'|'+schedDate]=ov.amount;
+        data._debtOvKeys[item.id+'|'+schedDate]=true;
+      }
+    });
+  }
+  function removeDebtExpense(debtId){
+    var item=(data.recurring||[]).filter(function(r){return r.sourceDebtId===debtId;})[0];
+    if(item){
+      Object.keys(data.skips||{}).forEach(function(k){ if(k.indexOf(item.id+'|')===0 && data.skips[k]==='debt') delete data.skips[k]; });
+      Object.keys(data.overrides||{}).forEach(function(k){ if(data._debtOvKeys&&data._debtOvKeys[k]) delete data.overrides[k]; });
+    }
+    if(Array.isArray(data.recurring)) data.recurring=data.recurring.filter(function(r){return r.sourceDebtId!==debtId;});
+    if(Array.isArray(data.oneOffs)) data.oneOffs=data.oneOffs.filter(function(o){return o.sourceDebtId!==debtId;});
+  }
+
+  // ----- Savings pots -----
+  // Saved-so-far = starting balance + every monthly contribution whose date is on/before today
+  // + any one-off top-ups on/before today. The contribution flows into the forecast as a linked
+  // recurring expense (it leaves your spendable balance). Goal projection: at the contribution rate,
+  // what will the pot hold by the target date, and is that on track for the target amount.
+  function potContributionDate(pot, i){
+    var start=parseISO(pot.startDate||todayISO());
+    var payDay=pot.paymentDay||start.getDate();
+    var dt=new Date(start.getFullYear(), start.getMonth()+i, Math.min(payDay, new Date(start.getFullYear(), start.getMonth()+i+1, 0).getDate()));
+    if(pot.rollWeekend!==false) dt=rollIfWeekend(dt);
+    return dt;
+  }
+  function potState(pot){
+    var today=todayMidnight();
+    var saved = pot.startBalance||0;
+    // count every monthly contribution whose (rolled) date is on/before today
+    var contribPaid=0;
+    if((pot.contribution||0)>0){
+      for(var i=0;i<600;i++){
+        var dt=potContributionDate(pot, i);
+        if(pot.targetDate && dt>parseISO(pot.targetDate)) break; // contributions stop at goal date
+        if(dt<=today){ contribPaid+=pot.contribution; }
+        else break; // dates only move forward, so first future date ends the paid run
+      }
+    }
+    var topupPaid=0;
+    (pot.topups||[]).forEach(function(t){ if(t.date && parseISO(t.date)<=today) topupPaid+=(t.amount||0); });
+    saved = Math.round((saved + contribPaid + topupPaid)*100)/100;
+    // goal projection at target date
+    var proj=null, onTrack=null, shortfall=null;
+    if(pot.targetDate && (pot.target||0)>0){
+      var td=parseISO(pot.targetDate);
+      var futureContribs=0;
+      if((pot.contribution||0)>0){
+        for(var j=0;j<600;j++){
+          var d2=potContributionDate(pot, j);
+          if(d2>today && d2<=td) futureContribs+=pot.contribution;
+          if(d2>td) break;
+        }
+      }
+      var futureTopups=0;
+      (pot.topups||[]).forEach(function(t){ if(t.date){ var dt2=parseISO(t.date); if(dt2>today && dt2<=td) futureTopups+=(t.amount||0); } });
+      proj = Math.round((saved+futureContribs+futureTopups)*100)/100;
+      onTrack = proj>=pot.target;
+      shortfall = Math.round((pot.target-proj)*100)/100;
+    }
+    return { saved:saved, target:pot.target||0, targetDate:pot.targetDate||null, projected:proj, onTrack:onTrack, shortfall:shortfall };
+  }
+  // Create/update the recurring expense a pot owns (its monthly contribution leaving the balance).
+  function syncPotExpense(pot){
+    if(!Array.isArray(data.recurring)) data.recurring=[];
+    var item=data.recurring.filter(function(r){return r.sourcePotId===pot.id;})[0];
+    if((pot.contribution||0)<=0){
+      // no contribution -> ensure no lingering expense
+      if(item) data.recurring=data.recurring.filter(function(r){return r.sourcePotId!==pot.id;});
+      removePotTopups(pot);
+      return;
+    }
+    if(!item){
+      var maxOrder=data.recurring.reduce(function(m,r){return Math.max(m,r.order||0);},0);
+      item={ id:genId(), sourcePotId:pot.id, type:'expense', active:true, order:maxOrder+1, cadence:'monthly', monthInterval:1 };
+      data.recurring.push(item);
+    }
+    item.name = (pot.name||'Savings');
+    item.amount = pot.contribution||0;
+    item.cadence = 'monthly';
+    item.monthInterval = 1;
+    item.dayOfMonth = pot.paymentDay||parseISO(pot.startDate||todayISO()).getDate();
+    item.rollWeekend = pot.rollWeekend!==false;
+    item.group = pot.group||'Savings';
+    item.onCard = false;
+    item.startDate = pot.startDate||todayISO();
+    item.endDate = pot.targetDate || undefined; // stop contributing once the goal date passes
+    syncPotTopups(pot);
+  }
+  // One-off top-ups flow into the forecast as debt-style one-offs tagged with the pot id.
+  function syncPotTopups(pot){
+    data.oneOffs=data.oneOffs||[];
+    data.oneOffs=data.oneOffs.filter(function(o){ return o.sourcePotId!==pot.id; });
+    (pot.topups||[]).forEach(function(t){
+      if(t.amount>0 && t.date) data.oneOffs.push({ id:genId(), sourcePotId:pot.id, date:t.date, name:(pot.name||'Savings')+' top-up', type:'expense', amount:t.amount });
+    });
+  }
+  function removePotTopups(pot){ data.oneOffs=(data.oneOffs||[]).filter(function(o){ return o.sourcePotId!==pot.id; }); }
+  function removePotExpense(potId){
+    if(Array.isArray(data.recurring)) data.recurring=data.recurring.filter(function(r){return r.sourcePotId!==potId;});
+    if(Array.isArray(data.oneOffs)) data.oneOffs=data.oneOffs.filter(function(o){return o.sourcePotId!==potId;});
+  }
+
+  // The next card payment date on or after `from`, derived purely from card config
+  // (statement cycle + payment day + weekend/bank-holiday roll). No manual date needed.
+  function nextCardPaymentOnOrAfter(card, from){
+    var roll=(card.rollWeekend!==false)?'mon':false;
+    // walk statement cycles from ~2 months back to 2 months ahead; return earliest payment >= from
+    var probe=addDays(from,-70);
+    for(var i=0;i<8;i++){
+      var c=cycleFor(probe, card.statementStartDay);
+      var pay=cardPaymentDate(c.closeY, c.closeM, card.paymentDay, roll, c.end.getDate());
+      if(pay>=from) return pay;
+      probe=addDays(c.end,1); // next cycle
+    }
+    return null;
+  }
+  // Identify the "current" statement cycle (the one paying on the next payment date) and the
+  // "next" cycle (the one after it). Used so the next cycle can accept a total-balance figure
+  // that has the current statement subtracted. Roles rotate automatically as payment dates pass.
+  function currentAndNextCycleKeys(card, from){
+    var roll=(card.rollWeekend!==false)?'mon':false;
+    var probe=addDays(from,-70);
+    for(var i=0;i<8;i++){
+      var c=cycleFor(probe, card.statementStartDay);
+      var pay=cardPaymentDate(c.closeY, c.closeM, card.paymentDay, roll, c.end.getDate());
+      if(pay>=from){
+        var nextC=cycleFor(addDays(c.end,1), card.statementStartDay);
+        return { currentKey:c.key, nextKey:nextC.key };
+      }
+      probe=addDays(c.end,1);
+    }
+    return { currentKey:null, nextKey:null };
+  }
+
+  function occurrences(item,start,end){
+    if(item.active===false) return [];
+    var roll=!!item.rollWeekend;
+    // Widen the raw window by a few days so a Sat/Sun just before `start` can roll into range,
+    // and so we don't miss an in-range date that rolls just past `end` handling.
+    var rawStart=addDays(start,-3), rawEnd=addDays(end,3);
+    var raw=[];
+    if(item.cadence==='weekly'){
+      var interval = (item.interval && item.interval>0) ? item.interval : 1;
+      if(interval===1){
+        var target=item.dayOfWeek||1; var cur=new Date(rawStart);
+        while(cur<=rawEnd){ var j=cur.getDay()===0?7:cur.getDay(); if(j===target)raw.push(new Date(cur)); cur=addDays(cur,1); }
+      } else {
+        var anchor = item.anchor ? parseISO(item.anchor) : (function(){
+          var t=new Date(); t.setHours(0,0,0,0); var tgt=item.dayOfWeek||1;
+          while((t.getDay()===0?7:t.getDay())!==tgt){ t=addDays(t,1); } return t;
+        })();
+        anchor.setHours(0,0,0,0);
+        var stepDays=interval*7;
+        var occ=new Date(anchor);
+        var deltaDays=Math.round((rawStart-anchor)/86400000);
+        if(deltaDays>0){ var steps=Math.ceil(deltaDays/stepDays); occ=addDays(anchor, steps*stepDays); }
+        while(occ<=rawEnd){ raw.push(new Date(occ)); occ=addDays(occ,stepDays); }
+      }
+    } else {
+      var dom=item.dayOfMonth||1;
+      var mInt=(item.monthInterval && item.monthInterval>0)?item.monthInterval:1;
+      // anchor month: from monthAnchor (YYYY-MM-DD or YYYY-MM) if set, else the first scanned month
+      var anchorY, anchorM;
+      if(mInt>1 && item.monthAnchor){ var ad=parseISO(item.monthAnchor.length===7?item.monthAnchor+'-01':item.monthAnchor); anchorY=ad.getFullYear(); anchorM=ad.getMonth(); }
+      var y=rawStart.getFullYear(), m=rawStart.getMonth();
+      if(mInt>1 && anchorY===undefined){ anchorY=y; anchorM=m; }
+      for(var i=0;i<13;i++){
+        var dim=new Date(y,m+1,0).getDate(); var d=new Date(y,m,Math.min(dom,dim));
+        var include=true;
+        if(mInt>1){ var monthsFromAnchor=(y-anchorY)*12+(m-anchorM); include = monthsFromAnchor>=0 ? (monthsFromAnchor%mInt===0) : (((monthsFromAnchor%mInt)+mInt)%mInt===0); }
+        if(include) raw.push(d);
+        m++; if(m>11){m=0;y++;}
+      }
+    }
+    // apply weekend roll, then clip to [start,end], honour optional start/end dates, dedupe
+    // Income rolls back to the Friday before; expenses roll forward to Monday.
+    var rollFn = item.type==='income' ? rollToFriday : rollIfWeekend;
+    var startCap = item.startDate ? parseISO(item.startDate) : null;
+    var endCap = item.endDate ? parseISO(item.endDate) : null;
+    var seen={}; var out=[];
+    raw.forEach(function(d){
+      var eff = roll ? rollFn(d) : d;
+      // The scheduled (pre-roll) date governs start/end — a payment due on a boundary day
+      // still counts even if its weekend-roll nudges the actual date slightly across.
+      if(startCap && d<startCap) return;
+      if(endCap && d>endCap) return;
+      if(eff>=start && eff<=end){ var k=isoDate(eff); if(!seen[k]){ seen[k]=true; out.push(k); } }
+    });
+    out.sort();
+    return out;
+  }
+
+  function gatherEvents(data, start, end, holdStart){
+    var events=[];
+    var card=data.card;
+    var cardOn=!!(card && card.enabled);
+    // holdStart: flexible items are kept from here (e.g. the current week's Monday) even if
+    // earlier than `start`/today — so a not-yet-spent flexible cost doesn't vanish mid-week.
+    var flexFrom = holdStart ? holdStart : start;
+    // Cycle spending accumulator: key (cycle start iso) -> {flagged, closeY, closeM, start, end}
+    var cycles={};
+    var manualMap = (card && card.manual) || {};
+    var todayM = todayMidnight();
+    function addToCycle(dateISOval, amount){
+      var c=cycleFor(parseISO(dateISOval), card.statementStartDay);
+      // If a manual figure has been entered for this cycle, it already includes any flagged
+      // item whose (rolled) date is on or before today — so don't double-count by estimating it.
+      var hasManual = manualMap[c.key] > 0;
+      if(hasManual && parseISO(dateISOval) <= todayM) return;
+      if(!cycles[c.key]) cycles[c.key]={flagged:0, closeY:c.closeY, closeM:c.closeM, start:c.start, end:c.end};
+      cycles[c.key].flagged+=amount;
+    }
+    // Widen the spending-scan window so cycles paid inside [start,end] are fully captured,
+    // even if their spending dates fall a couple of months before `start`.
+    var scanStart = cardOn ? addDays(start,-70) : addDays(start,-7);
+    var scanEnd = cardOn ? addDays(end,40) : end;
+
+    data.recurring.forEach(function(item){
+      var lowBound = item.flexible ? flexFrom : start;
+      occurrences(item, scanStart, scanEnd).forEach(function(d){
+        var key=item.id+'|'+d;
+        if(data.skips&&data.skips[key])return;
+        var ov=data.overrides?data.overrides[key]:undefined;
+        var has=ov!==undefined&&ov!==null;
+        var amount=has?ov:item.amount;
+        if(cardOn && item.onCard && item.type==='expense'){
+          // Flagged: do NOT emit on its own date; fold into its statement cycle.
+          addToCycle(d, amount);
+          return;
+        }
+        // Non-card item: emit within window. Flexible items are kept from flexFrom (week start),
+        // so a cost whose scheduled day has just passed stays until its week ends.
+        var dd=parseISO(d);
+        if(dd>=lowBound && dd<=end){
+          events.push({id:key,recurringId:item.id,date:d,name:item.name,
+            type:item.type,amount:amount,recurring:true,variable:!!item.variable,estimated:!!item.variable&&!has,flexible:!!item.flexible,sourceDebtId:item.sourceDebtId,sourcePotId:item.sourcePotId});
+        }
+      });
+    });
+    (data.oneOffs||[]).forEach(function(o){
+      var d=parseISO(o.date);
+      if(cardOn && o.onCard && o.type==='expense'){
+        if(d>=scanStart && d<=scanEnd) addToCycle(o.date, o.amount);
+        return;
+      }
+      if(d>=start&&d<=end){ var c={}; for(var k in o)c[k]=o[k]; c.recurring=false; events.push(c); }
+    });
+
+    if(cardOn){
+      // Manual amounts per cycle are keyed by cycle-start iso in card.manual
+      var manual=card.manual||{};
+      // The "Current statement" figure applies to the NEXT payment date on/after today, computed
+      // from the card's own payment day + roll rules (no manual date). Any calculated statement
+      // landing on or before it is already covered by that figure. Once the date passes, the
+      // calculated cycles take over automatically.
+      var openingPay=null;
+      if(card.openingAmount>0){
+        openingPay=nextCardPaymentOnOrAfter(card, todayMidnight());
+      }
+      // ensure cycles that only have a manual amount still get considered
+      Object.keys(manual).forEach(function(ck){ if(!cycles[ck] && manual[ck]>0){ var cs=parseISO(ck); var c=cycleFor(cs,card.statementStartDay); cycles[ck]={flagged:0,closeY:c.closeY,closeM:c.closeM,start:c.start,end:c.end}; } });
+      // Identify current/next cycle so the next cycle's manual figure is read as a TOTAL card
+      // balance: its carry-over = (total entered − current statement figure). Roles rotate as
+      // payment dates pass.
+      var roles=currentAndNextCycleKeys(card, todayMidnight());
+      Object.keys(cycles).forEach(function(ck){
+        var cyc=cycles[ck];
+        var man=manual[ck]||0;
+        var total;
+        if(ck===roles.nextKey && man>0){
+          // Next statement: entered figure is the TOTAL card balance. Subtract the current
+          // statement (openingAmount) to get the already-spent carry-over, then add this cycle's
+          // future flagged estimates. Carry-over floored at 0 so a stale figure can't go negative.
+          var carry=Math.max(0, man - (card.openingAmount||0));
+          total=carry + cyc.flagged;
+        } else {
+          total=cyc.flagged+man;
+        }
+        if(total<=0) return;
+        var pay=cardPaymentDate(cyc.closeY, cyc.closeM, card.paymentDay, (card.rollWeekend!==false?"mon":false), cyc.end.getDate());
+        // skip a derived payment already represented by the current-statement figure
+        if(openingPay && pay<=openingPay) return;
+        if(pay>=start && pay<=end){
+          events.push({ id:'card|'+ck, date:isoDate(pay), name:(card.name||'Amex')+' payment', type:'expense', amount:total, recurring:true, isCard:true, cycleKey:ck });
+        }
+      });
+      // Current statement. Two phases:
+      //  Phase 1 (no total balance entered yet): statement still accruing → bill + this cycle's future.
+      //  Phase 2 (total balance entered, i.e. statement has generated): bill is fixed → bill only.
+      if(openingPay && openingPay>=start && openingPay<=end){
+        var phase2 = (manual[roles.nextKey]||0) > 0;
+        var futureCur=0;
+        if(!phase2){
+          data.recurring.forEach(function(it){ if(it.onCard&&it.type==='expense'){ occurrences(it, addDays(todayMidnight(),-2), addDays(todayMidnight(),70)).forEach(function(dd){ var k2=it.id+'|'+dd; if(data.skips&&data.skips[k2])return; var cc=cycleFor(parseISO(dd),card.statementStartDay); if(cc.key===roles.currentKey && parseISO(dd)>todayMidnight()){ var ov2=data.overrides?data.overrides[k2]:undefined; futureCur+=(ov2!==undefined&&ov2!==null)?ov2:it.amount; } }); } });
+          (data.oneOffs||[]).forEach(function(o){ if(o.onCard&&o.type==='expense'){ var cc=cycleFor(parseISO(o.date),card.statementStartDay); if(cc.key===roles.currentKey && parseISO(o.date)>todayMidnight()) futureCur+=o.amount; } });
+        }
+        events.push({ id:'card-opening', date:isoDate(openingPay), name:(card.name||'Amex')+' payment', type:'expense', amount:card.openingAmount+futureCur, recurring:false, isCard:true, cycleKey:roles.currentKey });
+      }
+    }
+    return events;
+  }
+
+  // start of the pay period (the payDay on or before the given date)
+  // The actual day money lands for a given month's payday: rolls back to Friday on a weekend,
+  // matching how salary income rolls, so period boundaries line up with real pay dates.
+  function paydayActual(y, m, payDay){
+    var dim=new Date(y,m+1,0).getDate();
+    var raw=new Date(y,m,Math.min(payDay,dim));
+    return rollToFriday(raw);
+  }
+  function periodStart(date, payDay){
+    var y=date.getFullYear(), m=date.getMonth();
+    var start=paydayActual(y,m,payDay);
+    if(date<start){ // go to previous month's payday
+      m--; if(m<0){m=11;y--;}
+      start=paydayActual(y,m,payDay);
+    }
+    return start;
+  }
+
+  function finalisePeriods(periods, events, startBal, today, holdStart){
+    // Clip the current period to begin at the start of the current week (holdStart) rather than
+    // strictly today, so held flexible costs earlier this week aren't re-dropped. gatherEvents
+    // already excludes non-flexible past events, so nothing else leaks in.
+    var clipTo = holdStart || today;
+    if(periods.length && periods[0].start < clipTo){ periods[0].start = new Date(clipTo); }
+    events.forEach(function(ev){
+      var d=parseISO(ev.date);
+      for(var i=0;i<periods.length;i++){ if(d>=periods[i].start && d<=periods[i].end){ periods[i].items.push(ev); if(ev.type==='income')periods[i].inflow+=ev.amount; else periods[i].outflow+=ev.amount; break; } }
+    });
+    var running=startBal;
+    periods.forEach(function(p){
+      p.opening=running; p.net=p.inflow-p.outflow;
+      p.items.sort(function(x,y){ return x.date<y.date?-1:x.date>y.date?1:(x.name||'').localeCompare(y.name||''); });
+      var weeks=[]; var segStart=new Date(p.start);
+      while(segStart<=p.end){
+        var weekSunday=addDays(getMonday(segStart),6);
+        var segEnd = weekSunday < p.end ? weekSunday : p.end;
+        weeks.push({ key:isoDate(segStart), segStart:new Date(segStart), segEnd:new Date(segEnd), items:[], inflow:0, outflow:0 });
+        segStart=addDays(segEnd,1);
+      }
+      p.items.forEach(function(ev){
+        var d=parseISO(ev.date);
+        for(var wi=0; wi<weeks.length; wi++){ if(d>=weeks[wi].segStart && d<=weeks[wi].segEnd){ weeks[wi].items.push(ev); if(ev.type==='income')weeks[wi].inflow+=ev.amount; else weeks[wi].outflow+=ev.amount; break; } }
+      });
+      var wrun=running;
+      weeks.forEach(function(w){ w.opening=wrun; w.net=w.inflow-w.outflow; wrun+=w.net; w.endBalance=wrun; });
+      p.weeks=weeks;
+      running+=p.net; p.endBalance=running;
+    });
+    return periods;
+  }
+
+  // Shared horizon target: the last day of the month ~6 months out. All three views run to
+  // at least here so they cover the same set of months.
+  function horizonTarget(today){ return new Date(today.getFullYear(), today.getMonth()+7, 0); }
+
+  function buildPayPeriods(data){
+    var payDay=data.payDay||28;
+    var today=todayMidnight();
+    var fullStart=periodStart(today, payDay);
+    var horizonEnd=horizonTarget(today);
+    var weekStart=getMonday(today);
+    var events=gatherEvents(data, today, horizonEnd, weekStart);
+    var periods=[]; var cur=new Date(fullStart);
+    while(cur<=horizonEnd){
+      var ny=cur.getFullYear(), nm=cur.getMonth()+1; if(nm>11){nm=0;ny++;}
+      var next=paydayActual(ny,nm,payDay);
+      var pEnd=addDays(next,-1);
+      // Only include periods that END on or before the horizon (so a period running into the
+      // next month past the target isn't shown — e.g. drop 25 Dec–24 Jan, keep …–24 Dec).
+      if(pEnd>horizonEnd) break;
+      periods.push({key:isoDate(cur), start:new Date(cur), end:pEnd, fullStart:new Date(cur), items:[], inflow:0, outflow:0});
+      cur=next;
+    }
+    return finalisePeriods(periods, events, data.currentBalance, today, weekStart);
+  }
+
+  // Total of the Amex statement that pays in the month AFTER `periodEnd` (the bill you'd clear
+  // if you wanted to be square going into the next period). Returns 0 if no card.
+  function amexStatementPaidAfter(data, periodEnd){
+    var card=data.card; if(!card||!card.enabled) return 0;
+    // find the first card-payment event strictly after periodEnd, within a short look-ahead
+    var look=gatherEvents(data, addDays(periodEnd,1), addDays(periodEnd,45));
+    var next=look.filter(function(e){return e.isCard;}).sort(function(a,b){return a.date<b.date?-1:1;})[0];
+    return next?next.amount:0;
+  }
+
+  function buildMonths(data){
+    var today=todayMidnight();
+    var fullStart=new Date(today.getFullYear(), today.getMonth(), 1);
+    // run to the shared horizon target (end of the month ~6 months out), so the final month is whole
+    var horizonEnd=horizonTarget(today);
+    var weekStart=getMonday(today);
+    var events=gatherEvents(data, today, horizonEnd, weekStart);
+    var periods=[]; var cy=fullStart.getFullYear(), cm=fullStart.getMonth();
+    var firstOfMonth=new Date(cy,cm,1);
+    while(firstOfMonth<=horizonEnd){
+      var endOfMonth=new Date(cy,cm+1,0);
+      periods.push({key:isoDate(firstOfMonth), start:new Date(firstOfMonth), end:endOfMonth, fullStart:new Date(firstOfMonth), items:[], inflow:0, outflow:0, isMonth:true});
+      cm++; if(cm>11){cm=0;cy++;}
+      firstOfMonth=new Date(cy,cm,1);
+    }
+    return finalisePeriods(periods, events, data.currentBalance, today, weekStart);
+  }
+
+  function buildWeeks(data){
+    var today=todayMidnight();
+    var firstMon=getMonday(today);
+    // Run until the shared horizon target (end of the month ~6 months out), including any week
+    // whose Monday falls on or before it — so all three views cover the same final month.
+    var lastMonthEnd=horizonTarget(today);
+    var numWeeks=0; var cur=new Date(firstMon);
+    while(cur<=lastMonthEnd){ numWeeks++; cur=addDays(cur,7); }
+    var end=addDays(firstMon,numWeeks*7-1);
+    // Flexible items are held from the start of the current week so they don't vanish mid-week.
+    var events=gatherEvents(data, today, end, firstMon);
+    var buckets={};
+    for(var w=0;w<numWeeks;w++){ var mk=isoDate(addDays(firstMon,w*7)); buckets[mk]={key:mk,items:[],inflow:0,outflow:0}; }
+    events.forEach(function(ev){ var mk=isoDate(getMonday(ev.date)); if(!buckets[mk])return; buckets[mk].items.push(ev); if(ev.type==='income')buckets[mk].inflow+=ev.amount; else buckets[mk].outflow+=ev.amount; });
+    var running=data.currentBalance;
+    var ordered=Object.keys(buckets).sort().map(function(k){return buckets[k];});
+    ordered.forEach(function(b){ b.opening=running; b.net=b.inflow-b.outflow; running+=b.net; b.endBalance=running;
+      b.items.sort(function(x,y){ return x.date<y.date?-1:x.date>y.date?1:(x.name||'').localeCompare(y.name||''); }); });
+    return ordered;
+  }
+
+  function el(tag, attrs, children){
+    var n=document.createElement(tag);
+    if(attrs){
+      for(var k in attrs){
+        var v=attrs[k];
+        if(v==null) continue;
+        if(k==='style'){ for(var s in v) n.style[s]=v[s]; }
+        else if(k==='class') n.className=v;
+        else if(k.slice(0,2)==='on'){ n.addEventListener(k.slice(2).toLowerCase(), v); }
+        else if(k==='html') n.innerHTML=v;
+        else if(k==='value') n.value=v;
+        else if(k==='checked') n.checked=v;
+        else if(k==='readonly'){ if(v) n.setAttribute('readonly',''); }
+        else n.setAttribute(k, v);
+      }
+    }
+    if(children!=null){
+      (Array.isArray(children)?children:[children]).forEach(function(c){
+        if(c==null||c===false) return;
+        n.appendChild(typeof c==='object'?c:document.createTextNode(String(c)));
+      });
+    }
+    return n;
+  }
+  function svg(paths, size, color, sw){
+    var ns='http://www.w3.org/2000/svg';
+    var s=document.createElementNS(ns,'svg');
+    s.setAttribute('width',size||18); s.setAttribute('height',size||18); s.setAttribute('viewBox','0 0 24 24');
+    s.setAttribute('fill','none'); s.setAttribute('stroke',color||'currentColor'); s.setAttribute('stroke-width',sw||2);
+    s.setAttribute('stroke-linecap','round'); s.setAttribute('stroke-linejoin','round');
+    s.innerHTML=paths;
+    return s;
+  }
+  var ICON = {
+    gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    x:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    up:'<polyline points="18 15 12 9 6 15"/>',
+    down:'<polyline points="6 9 12 15 18 9"/>',
+    trash:'<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    repeat:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    warn:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    list:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'
+  };
+
+  
+
+  /* ============ V3 VIEW LAYER (dark / premium) ============ */
+  var C = {
+    bg:'#141414', surface:'#262626', surface2:'#2E2E2E', raised:'#363636',
+    line:'#2A2A2A', lineSoft:'#222222',
+    text:'#E8E8E6', textDim:'#9E9E9E', textFaint:'#7A7A7A',
+    accent:'#9B7DF5', accentDim:'#2A2150', accentSoft:'rgba(155,125,245,.15)',
+    rust:'#F5703C', rustSoft:'rgba(245,112,60,.14)',
+    amber:'#F0C040', amberSoft:'rgba(240,192,64,.14)',
+    green:'#34C759', greenSoft:'rgba(52,199,89,.14)',
+    blue:'#4A90F0', orange:'#F5703C', yellow:'#F0C040', purple:'#8B5CF6'
+  };
+  var ICON3 = {
+    planner:'<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+    card:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+    gear:ICON.gear, plus:ICON.plus, up:ICON.up, down:ICON.down, x:ICON.x,
+    repeat:ICON.repeat, warn:ICON.warn, download:ICON.download, upload:ICON.upload, trash:ICON.trash,
+    chevron:'<polyline points="9 18 15 12 9 6"/>',
+    check:'<polyline points="20 6 9 17 4 12"/>',
+    clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+    debt:'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>'
+  };
+
+  var data = loadData();
+  var expanded = {};
+  var modal = null;
+  var tab = 'planner'; // planner | card | settings
+  var root = document.getElementById('root');
+  var stx = { nw:newItemBlank(), copied:false, importOpen:false, importText:'', importError:false, clipFail:false, importDone:false, ciBalance:undefined, ciDue:undefined, ciTotal:undefined, ciShowTotal:false,
+              exportText:null, cardExpanded:{}, scrollToCycle:null, resetConfirm:false,
+              debtExpanded:{}, debtAddOpen:false, dnew:{name:'',original:'',payment:'',startDate:'',paymentDay:1},
+              moneySub:'savings', potAddOpen:false, pnew:{name:'',contribution:'',startBalance:'',startDate:'',paymentDay:1,target:'',targetDate:''}, showTotalBal:false,
+              snapView:false, snapExpanded:{}, snapScroll:0, snapMode:null };
+
+  function newItemBlank(){ return {name:'',type:'expense',group:'',amount:'',cadence:'monthly',dayOfMonth:1,dayOfWeek:1,interval:1,anchor:'',monthInterval:1,monthAnchor:'',rollWeekend:false,startDate:'',endDate:'',onCard:false}; }
+  function commit(){ saveData(data); if(root)root._bgBuilt=false; render(); }
+  function saveQuiet(){ saveData(data); }
+
+  var lastScreen=null;
+  var lastModalKey='';
+  function getScroll(){ return window.scrollY||window.pageYOffset||document.documentElement.scrollTop||0; }
+  function render(){
+    var prev=getScroll();
+    if(stx.snapView){
+      root.innerHTML='';
+      root._bgBuilt=false; root._sheetNode=null;
+      root.appendChild(renderSnapshot());
+      root.appendChild(renderTabBar());
+      window.scrollTo(0, stx.snapScroll||0);
+      lastScreen='snapshot';
+      return;
+    }
+    var screen = modal && modal.type==='settings' ? 'settings' : tab;
+    var sameScreen = screen===lastScreen;
+    // Perf: if a non-settings modal is opening/closing on the same screen, the background
+    // doesn't change — reuse it and only swap the sheet, avoiding a full forecast rebuild.
+    var modalKey = modal ? modal.type+(modal.id||'') : '';
+    if(sameScreen && root._bgBuilt && modalKey!==lastModalKey && !(modal&&modal.type==='settings') && lastModalKey!=='settings'){
+      // remove any existing sheet overlay (last child if it's a sheet-bg/full)
+      if(root._sheetNode && root._sheetNode.parentNode===root){ root.removeChild(root._sheetNode); root._sheetNode=null; }
+      if(modal){
+        var sheet=null;
+        if(modal.type==='oneoff'||modal.type==='editOneoff') sheet=renderOneOffSheet();
+        else if(modal.type==='checkin') sheet=renderCheckinSheet();
+        else if(modal.type==='occ') sheet=renderOccSheet();
+        else if(modal.type==='editDebt') sheet=renderDebtSheet();
+        else if(modal.type==='editDebtPeriod') sheet=renderDebtPeriodSheet();
+        else if(modal.type==='editPot') sheet=renderPotSheet();
+        else if(modal.type==='consume') sheet=renderConsumeSheet();
+        if(sheet){ root.appendChild(sheet); root._sheetNode=sheet; }
+      }
+      lastModalKey=modalKey;
+      return;
+    }
+    root.innerHTML='';
+    if(tab==='settings' || (modal&&modal.type==='settings')) root.appendChild(renderSettings());
+    else if(tab==='card') root.appendChild(renderCard());
+    else if(tab==='debts') root.appendChild(renderDebts());
+    else root.appendChild(renderPlanner());
+    root.appendChild(renderTabBar());
+    root._bgBuilt=true; root._sheetNode=null;
+    if(modal){
+      var sh2=null;
+      if(modal.type==='oneoff'||modal.type==='editOneoff') sh2=renderOneOffSheet();
+      else if(modal.type==='checkin') sh2=renderCheckinSheet();
+      else if(modal.type==='occ') sh2=renderOccSheet();
+      else if(modal.type==='editDebt') sh2=renderDebtSheet();
+      else if(modal.type==='editDebtPeriod') sh2=renderDebtPeriodSheet();
+      else if(modal.type==='editPot') sh2=renderPotSheet();
+      else if(modal.type==='consume') sh2=renderConsumeSheet();
+      if(sh2){ root.appendChild(sh2); root._sheetNode=sh2; }
+    }
+    lastModalKey=modalKey;
+    lastScreen=screen;
+    if(stx.scrollToCycle && tab==='card'){
+      var ck=stx.scrollToCycle; stx.scrollToCycle=null;
+      var doScroll=function(){ var n=document.querySelector('[data-cycle="'+ck+'"]'); if(n&&n.scrollIntoView){ n.scrollIntoView({block:'center'}); return true; } return false; };
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ if(!doScroll()){ setTimeout(doScroll,60); setTimeout(doScroll,200); } }); });
+      return;
+    }
+    if(sameScreen){ requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.scrollTo(0,prev); }); }); }
+    else window.scrollTo(0,0);
+  }
+
+  /* ---------- tab bar ---------- */
+  function renderTabBar(){
+    var bar=el('div',{class:'tabbar'});
+    var inner=el('div',{class:'tabbar-inner'});
+    function mk(id,label,icon){
+      var on=(tab===id)&&!(modal&&modal.type==='settings');
+      var b=el('button',{class:'tab'+(on?' on':''),onClick:function(){ tab=id; modal=null; expanded={}; stx.snapView=false; stx.snapMode=null; render(); }});
+      b.appendChild(svg(icon,21,on?C.text:C.textFaint, on?2.2:2));
+      b.appendChild(el('span',null,label));
+      return b;
+    }
+    inner.appendChild(mk('planner','Forecast',ICON3.planner));
+    inner.appendChild(mk('card','Amex',ICON3.card));
+    // floating white + center button (MacroFactor signature) — quick add one-off
+    var plusWrap=el('div',{style:{flex:'1',display:'flex',justifyContent:'center'}});
+    var plus=el('button',{style:{width:'52px',height:'52px',borderRadius:'50%',background:'#fff',border:'none',display:'flex',alignItems:'center',justifyContent:'center',marginTop:'-8px',boxShadow:'0 4px 16px rgba(0,0,0,.4)'},'aria-label':'Check in',onClick:function(){ modal={type:'checkin'}; stx.ciShowTotal=false; render(); }});
+    plus.appendChild(svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',26,'#000',2.4));
+    plusWrap.appendChild(plus);
+    inner.appendChild(plusWrap);
+    inner.appendChild(mk('debts','Money',ICON3.debt));
+    inner.appendChild(mk('settings','Manage',ICON3.gear));
+    bar.appendChild(inner);
+    return bar;
+  }
+
+  /* ---------- planner ---------- */
+  // ----- Forecast snapshot (frozen copy of the forecast) -----
+  function openSnapshot(){
+    if(!data.snapshot){
+      // none yet — capture now from current data + today
+      captureSnapshot();
+    }
+    stx.snapView=true; stx.snapExpanded={}; stx.snapScroll=0; render();
+  }
+  function captureSnapshot(){
+    data.snapshot = { date: todayISO(), data: JSON.parse(JSON.stringify(stripSnapshot(data))) };
+    saveData(data);
+  }
+  // Don't nest a snapshot inside the snapshot (avoid unbounded growth).
+  function stripSnapshot(d){ var c=Object.assign({},d); delete c.snapshot; return c; }
+  // Is the live data different from what we froze? (cheap structural compare, ignoring the snapshot itself)
+  function snapshotStale(live){
+    if(!live.snapshot) return false;
+    try{ return JSON.stringify(stripSnapshot(live)) !== JSON.stringify(live.snapshot.data); }
+    catch(e){ return false; }
+  }
+
+  function renderSnapshot(){
+    var wrap=el('div',{class:'wrap'});
+    var snap=data.snapshot;
+
+    // header with back
+    var head=el('div',{style:{display:'flex',alignItems:'center',gap:'12px',marginTop:'4px',marginBottom:'4px'}});
+    var back=el('button',{style:{background:'none',border:'none',padding:'4px',margin:'-4px',color:C.text,display:'flex',alignItems:'center'},'aria-label':'Back',onClick:function(){ stx.snapView=false; render(); }});
+    back.appendChild(svg('<polyline points="15 18 9 12 15 6"/>',22,C.text));
+    head.appendChild(back);
+    head.appendChild(el('div',{style:{fontSize:'24px',fontWeight:'700',letterSpacing:'-.02em'}},'Saved forecast'));
+    wrap.appendChild(head);
+
+    // captured-on + refresh + stale warning
+    var capDate = snap ? parseISO(snap.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+    var meta=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',marginBottom:'6px'}});
+    meta.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim}}, snap?('Captured '+capDate):'No snapshot yet'));
+    var refresh=el('button',{style:{flexShrink:'0',padding:'7px 12px',border:'1px solid '+C.line,borderRadius:'10px',background:C.surface,color:C.accent,fontSize:'12px',fontWeight:'600',cursor:'pointer',font:'inherit'},onClick:function(){ captureSnapshot(); stx.snapExpanded={}; render(); }}, snap?'Refresh':'Take snapshot');
+    meta.appendChild(refresh);
+    wrap.appendChild(meta);
+
+    if(snapshotStale(data)){
+      wrap.appendChild(el('div',{style:{marginBottom:'14px',padding:'9px 13px',borderRadius:'10px',background:C.amberSoft,color:C.amber,fontSize:'11px',fontWeight:'600',lineHeight:'1.4'}},'Your data has changed since this was captured. Tap Refresh to update the snapshot.'));
+    } else {
+      wrap.appendChild(el('div',{style:{height:'10px'}}));
+    }
+
+    if(!snap){
+      wrap.appendChild(el('div',{class:'grp',style:{padding:'20px 17px',textAlign:'center',fontSize:'13px',color:C.textDim}},'Tap \u201cTake snapshot\u201d to freeze your current forecast here.'));
+      return wrap;
+    }
+
+    // The frozen data is snap.data. The view mode for browsing the snapshot lives in stx.snapMode
+    // (session-only) so it never mutates the frozen snapshot or the live data.
+    var fd = snap.data;
+    var mode = stx.snapMode || fd.viewMode || 'weekly';
+    var isPeriod=(mode==='payperiod'||mode==='month');
+
+    // hero
+    wrap.appendChild(el('div',{style:{marginBottom:'14px'}},[
+      el('div',{class:'eyebrow',style:{marginBottom:'6px'}},'Balance at capture'),
+      el('div',{class:'mono',style:{fontSize:'30px',fontWeight:'600',lineHeight:'1',letterSpacing:'-.03em'}}, fmt(fd.currentBalance,fd.currency))
+    ]));
+
+    // view toggle (session-only mode)
+    var seg=el('div',{class:'seg',style:{marginBottom:'14px'}});
+    [['weekly','Weekly'],['payperiod','Payday'],['month','Monthly']].forEach(function(m){
+      seg.appendChild(el('button',{class:mode===m[0]?'on':'',onClick:(function(mm){return function(){ stx.snapMode=mm; render(); };})(m[0])},m[1]));
+    });
+    wrap.appendChild(seg);
+
+    // Build buckets from the FROZEN data, projecting from the capture date. We set the globals
+    // (data, viewMode, override, expanded) only for the synchronous build below, then restore.
+    var liveData=data, liveMode=fd.viewMode;
+    data=fd; fd.viewMode=mode; __todayOverride=snap.date;
+    var rows=[];
+    try{
+      var buckets = mode==='payperiod'?buildPayPeriods(fd):(mode==='month'?buildMonths(fd):buildWeeks(fd));
+      buckets.forEach(function(bucket,idx){
+        if(mode==='weekly'){
+          var showM = idx===0||monthSpan(bucket.key)!==monthSpan(buckets[idx-1].key);
+          if(showM) rows.push(el('div',{class:'eyebrow',style:{marginTop:idx===0?'4px':'18px',marginBottom:'9px',paddingLeft:'3px'}},monthSpan(bucket.key)));
+        }
+        rows.push(periodCard(bucket, mode, isPeriod, true));
+      });
+    } finally {
+      data=liveData; fd.viewMode=liveMode; __todayOverride=null;
+    }
+    rows.forEach(function(r){ wrap.appendChild(r); });
+    return wrap;
+  }
+
+  function renderPlanner(){
+    var full=el('div');
+    var wrap=el('div',{class:'wrap'});
+
+    // header with snapshot shortcut
+    var hdr=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}});
+    hdr.appendChild(el('div',{style:{fontSize:'27px',fontWeight:'700',letterSpacing:'-.02em',lineHeight:'1'}},'Forecast'));
+    var toolsBtn=el('button',{style:{background:'none',border:'none',padding:'6px',margin:'-6px',color:C.textDim,display:'flex',alignItems:'center',cursor:'pointer'},'aria-label':'Saved forecast',onClick:function(){ openSnapshot(); }});
+    toolsBtn.appendChild(svg('<circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>',22,C.textDim));
+    hdr.appendChild(toolsBtn);
+    wrap.appendChild(hdr);
+
+    if(!storageOK){
+      wrap.appendChild(el('div',{style:{marginBottom:'14px',padding:'11px 14px',borderRadius:'12px',fontSize:'12px',background:C.amberSoft,color:C.amber}},
+        "Storage is blocked, so changes won't survive a reload. Export your data from Settings to keep a backup."));
+    }
+
+    // hero balance — confident, large
+    var hero=el('div',{class:'hero'});
+    hero.appendChild(el('div',{class:'eyebrow',style:{marginBottom:'10px',position:'relative'}},'Balance today'));
+    hero.appendChild(el('div',{class:'mono',style:{fontSize:'48px',fontWeight:'600',lineHeight:'.95',letterSpacing:'-.035em',position:'relative'}},fmt(data.currentBalance,data.currency)));
+    // mini insight: lowest point
+    var wkAll=buildWeeks(data);
+    var low=wkAll[0]; wkAll.forEach(function(b){ if(b.endBalance<low.endBalance)low=b; });
+    if(low && low.endBalance<data.currentBalance){
+      var lowCol=low.endBalance<0?C.rust:C.amber;
+      var sub=el('div',{style:{fontSize:'12.5px',marginTop:'14px',color:C.textDim,position:'relative',display:'flex',alignItems:'center',gap:'7px'}});
+      sub.appendChild(el('span',{style:{width:'6px',height:'6px',borderRadius:'50%',background:lowCol,display:'inline-block',flexShrink:'0'}}));
+      sub.appendChild(document.createTextNode('Lowest ahead '));
+      sub.appendChild(el('strong',{style:{color:lowCol,fontWeight:'600'}},fmt(low.endBalance,data.currency)));
+      sub.appendChild(el('span',{style:{color:C.textFaint}},'· '+weekLabel(low.key)));
+      hero.appendChild(sub);
+    } else {
+      hero.appendChild(el('div',{style:{fontSize:'12.5px',marginTop:'14px',color:C.textDim,position:'relative'}},'Trending steady across the next 6 months'));
+    }
+    wrap.appendChild(hero);
+
+    // view toggle
+    var mode=data.viewMode||'weekly';
+    var isPeriod=(mode==='payperiod'||mode==='month');
+    var seg=el('div',{class:'seg'});
+    [['weekly','Weekly'],['payperiod','Payday'],['month','Monthly']].forEach(function(m){
+      var on=mode===m[0];
+      seg.appendChild(el('button',{class:on?'on':'',onClick:function(){ data.viewMode=m[0]; expanded={}; commit(); }},m[1]));
+    });
+    wrap.appendChild(seg);
+
+    var buckets = mode==='payperiod'?buildPayPeriods(data):(mode==='month'?buildMonths(data):wkAll);
+
+    // below-zero alert
+    var firstNeg=null, lowestB=buckets[0];
+    buckets.forEach(function(b){ if(firstNeg===null&&b.endBalance<0)firstNeg=b; if(b.endBalance<lowestB.endBalance)lowestB=b; });
+    if(firstNeg){
+      var lbl=isPeriod?periodTitle(firstNeg):weekLabel(firstNeg.key);
+      var msg='Dips below zero ('+fmt(firstNeg.endBalance,data.currency)+') around '+lbl+'.';
+      if(lowestB&&lowestB!==firstNeg&&lowestB.endBalance<firstNeg.endBalance) msg+=' Lowest '+fmt(lowestB.endBalance,data.currency)+' around '+(isPeriod?periodTitle(lowestB):weekLabel(lowestB.key))+'.';
+      var warn=el('div',{style:{borderRadius:'14px',padding:'12px 14px',marginBottom:'14px',display:'flex',gap:'9px',alignItems:'flex-start',background:C.rustSoft}});
+      var ic=el('div',{style:{marginTop:'1px',flexShrink:'0'}}); ic.appendChild(svg(ICON3.warn,15,C.rust)); warn.appendChild(ic);
+      warn.appendChild(el('div',{style:{fontSize:'12px',color:C.rust,lineHeight:'1.4'}},msg));
+      wrap.appendChild(warn);
+    }
+
+    buckets.forEach(function(bucket,idx){
+      if(mode==='weekly'){
+        var showM = idx===0||monthSpan(bucket.key)!==monthSpan(buckets[idx-1].key);
+        if(showM) wrap.appendChild(el('div',{class:'eyebrow',style:{marginTop:idx===0?'4px':'18px',marginBottom:'9px',paddingLeft:'3px'}},monthSpan(bucket.key)));
+      }
+      wrap.appendChild(periodCard(bucket, mode, isPeriod));
+    });
+
+    full.appendChild(wrap);
+    return full;
+  }
+
+  function periodTitle(b){
+    var mode=data.viewMode;
+    return mode==='month'?b.start.toLocaleDateString('en-GB',{month:'long'}):b.end.toLocaleDateString('en-GB',{month:'long'});
+  }
+
+  function periodCard(bucket, mode, isPeriod, readOnly){
+    var key=bucket.key;
+    var exp = readOnly ? (stx.snapExpanded||(stx.snapExpanded={})) : expanded;
+    var open=(key in exp)?exp[key]:false;
+    var neg=bucket.endBalance<0;
+    var grp=el('div',{class:'grp',style:neg?{borderColor:C.rust}:null});
+    var head=el('button',{class:'grp-head',onClick:function(){ exp[key]=!open; if(readOnly) stx.snapScroll=getScroll(); render(); }});
+    var left=el('div',{style:{minWidth:'0',display:'flex',gap:'11px',alignItems:'center'}});
+    var chev=svg(ICON3.chevron,15,C.textFaint); chev.style.transform=open?'rotate(90deg)':'none'; chev.style.transition='transform .18s'; chev.style.flexShrink='0';
+    left.appendChild(chev);
+
+    var today=todayMidnight();
+    var titleText, subText, isCurrent;
+    if(isPeriod){
+      isCurrent=today>=bucket.start&&today<=bucket.end;
+      titleText=(mode==='month'?bucket.start.toLocaleDateString('en-GB',{month:'long',year:'numeric'}):bucket.end.toLocaleDateString('en-GB',{month:'long',year:'numeric'}))+(isCurrent?' · now':'');
+      subText=bucket.start.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+bucket.end.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    } else {
+      isCurrent=(key===isoDate(getMonday(today)));
+      titleText=weekLabel(key)+(isCurrent?' · now':'');
+      subText=fmtSigned(bucket.inflow,data.currency)+' in · '+fmtSigned(-bucket.outflow,data.currency)+' out';
+    }
+    // Weekly view has no nested rows, so the chip lives on the week header here.
+    // Period views (month/payday) show the chip on their nested week rows instead.
+    var hasAmex = !isPeriod && (bucket.items||[]).some(function(it){return it.isCard;});
+
+    var titleRow=el('div',{style:{display:'flex',gap:'7px',alignItems:'center',minWidth:'0'}},[
+      el('div',{class:'trunc',style:{fontSize:'15px',fontWeight:'600',color:isCurrent?C.accent:C.text}},titleText)
+    ]);
+    if(hasAmex) titleRow.appendChild(el('span',{class:'chip'},(data.card&&data.card.name)||'Amex'));
+    var tb=el('div',{style:{minWidth:'0'}},[
+      titleRow,
+      el('div',{style:{fontSize:'11px',marginTop:'2px',color:C.textDim}},subText)
+    ]);
+    left.appendChild(tb);
+    head.appendChild(left);
+    var rt=el('div',{style:{textAlign:'right',flexShrink:'0',paddingLeft:'10px'}});
+    rt.appendChild(el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'600',color:neg?C.rust:C.text}},fmt(bucket.endBalance,data.currency)));
+    rt.appendChild(el('div',{style:{fontSize:'10px',marginTop:'1px',color:C.textFaint,textTransform:'uppercase',letterSpacing:'.06em'}}, mode==='payperiod'?'at payday':(mode==='month'?'month end':'week end')));
+    head.appendChild(rt);
+    grp.appendChild(head);
+
+    if(open){
+      if(isPeriod){
+        var nonEmpty=(bucket.weeks||[]).filter(function(w){return w.items.length>0;});
+        if(nonEmpty.length===0) grp.appendChild(el('div',{style:{padding:'16px 17px',fontSize:'12px',color:C.textDim}},'Nothing planned this '+(mode==='month'?'month':'period')+'.'));
+        nonEmpty.forEach(function(w){
+          var wkKey='wk:'+w.key, wkOpen=(wkKey in exp)?exp[wkKey]:false;
+          var wh=el('button',{class:'wk-head',onClick:function(){ exp[wkKey]=!wkOpen; if(readOnly) stx.snapScroll=getScroll(); render(); }});
+          var wl=el('div',{style:{display:'flex',gap:'8px',alignItems:'center'}});
+          var wc=svg(ICON3.chevron,12,C.textFaint); wc.style.transform=wkOpen?'rotate(90deg)':'none'; wc.style.transition='transform .18s';
+          wl.appendChild(wc);
+          wl.appendChild(el('div',{style:{fontSize:'12px',fontWeight:'600',color:C.textDim}},w.segStart.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+w.segEnd.toLocaleDateString('en-GB',{day:'numeric',month:'short'})));
+          if(w.items.some(function(it){return it.isCard;})) wl.appendChild(el('span',{class:'chip'},(data.card&&data.card.name)||'Amex'));
+          wh.appendChild(wl);
+          wh.appendChild(el('div',{class:'mono',style:{fontSize:'12px',fontWeight:'600',color:w.endBalance<0?C.rust:C.textDim}},fmt(w.endBalance,data.currency)));
+          grp.appendChild(wh);
+          if(wkOpen){ w.items.forEach(function(it){ grp.appendChild(itemRow(it, readOnly)); }); if(!readOnly) grp.appendChild(addRow(isoDate(w.segStart))); }
+        });
+        var nextAmex=amexStatementPaidAfter(data,bucket.end);
+        if(nextAmex>0){
+          var ft=el('div',{style:{padding:'16px 17px',borderTop:'1px solid '+C.line,background:C.surface2}});
+          ft.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',marginBottom:'3px'}},[
+            el('div',{style:{fontSize:'12px',color:C.textDim}},(mode==='month'?'Month end':'Period end')),
+            el('div',{class:'mono',style:{fontSize:'13px',fontWeight:'600',color:bucket.endBalance<0?C.rust:C.text}},fmt(bucket.endBalance,data.currency))
+          ]));
+          var after=bucket.endBalance-nextAmex;
+          ft.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between'}},[
+            el('div',{style:{fontSize:'12px',color:C.textDim}},'After next '+(data.card.name||'Amex')+' ('+fmt(nextAmex,data.currency)+')'),
+            el('div',{class:'mono',style:{fontSize:'13px',fontWeight:'600',color:after<0?C.rust:C.accent}},fmt(after,data.currency))
+          ]));
+          grp.appendChild(ft);
+        }
+      } else {
+        if(bucket.items.length===0) grp.appendChild(el('div',{style:{padding:'16px 17px',fontSize:'12px',color:C.textDim}},'Nothing planned this week.'));
+        bucket.items.forEach(function(it){ grp.appendChild(itemRow(it, readOnly)); });
+        if(!readOnly) grp.appendChild(addRow(key));
+      }
+    }
+    return grp;
+  }
+
+  function addRow(dateISO){
+    var b=el('button',{style:{width:'100%',display:'flex',gap:'7px',alignItems:'center',padding:'11px 17px',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',color:C.textDim,fontSize:'12px',fontWeight:'600'},
+      onClick:function(){ modal={type:'oneoff',name:'',amount:'',ttype:'expense',date:dateISO}; render(); }});
+    b.appendChild(svg(ICON3.plus,14,C.textDim)); b.appendChild(document.createTextNode('Add one-off')); return b;
+  }
+
+  function itemRow(item, readOnly){
+    var r=el('div',{class:'row-item'});
+    var info=el('button',{style:{flex:'1',minWidth:'0',display:'flex',gap:'10px',alignItems:'center',background:'none',border:'none',textAlign:'left',padding:'0',cursor:readOnly?'default':'pointer'},
+      onClick:function(){
+        if(readOnly) return;
+        if(item.isCard){ tab='card'; modal=null; if(item.cycleKey){ stx.cardExpanded={}; stx.cardExpanded[item.cycleKey]=true; stx.scrollToCycle=item.cycleKey; } render(); return; }
+        if(item.sourceDebtId){ tab='debts'; stx.moneySub='debts'; modal={type:'editDebt',id:item.sourceDebtId}; render(); return; }
+        if(item.sourcePotId){ tab='debts'; stx.moneySub='savings'; modal={type:'editPot',id:item.sourcePotId}; render(); return; }
+        if(item.recurring){ modal={type:'occ',key:item.id,recurringId:item.recurringId,name:item.name,date:item.date,amount:String(item.amount)}; }
+        else { modal={type:'editOneoff',id:item.id,name:item.name,amount:String(item.amount),ttype:item.type,date:item.date}; }
+        render();
+      }});
+    info.appendChild(el('span',{class:'dot',style:{background:item.isCard?C.amber:(item.sourceDebtId?C.accent:(item.sourcePotId?C.green:(item.type==='income'?C.green:C.rust)))}}));
+    var nm=el('div',{style:{minWidth:'0'}});
+    var nameLine=el('div',{class:'trunc',style:{fontSize:'14px',fontWeight:'500'}},item.name);
+    nm.appendChild(nameLine);
+    var meta=el('div',{style:{fontSize:'11px',marginTop:'1px',color:C.textFaint,display:'flex',gap:'5px',alignItems:'center'}});
+    meta.appendChild(document.createTextNode(dayLabel(item.date)));
+    if(item.isCard){ var c1=el('span',{class:'chip'},'statement'); meta.appendChild(c1); }
+    if(item.sourceDebtId){ var cd=el('span',{class:'chip',style:{background:C.accentSoft,color:C.accent}},'debt'); meta.appendChild(cd); }
+    if(item.sourcePotId){ var cs=el('span',{class:'chip',style:{background:C.greenSoft,color:C.green}},'savings'); meta.appendChild(cs); }
+    if(item.estimated){ var c2=el('span',{class:'chip'},'est'); meta.appendChild(c2); }
+    nm.appendChild(meta);
+    info.appendChild(nm);
+    r.appendChild(info);
+    var rt=el('div',{style:{display:'flex',gap:'12px',alignItems:'center',flexShrink:'0'}});
+    rt.appendChild(el('span',{class:'mono',style:{fontSize:'14px',fontWeight:'600',color:item.type==='income'?C.green:C.text}},fmtSigned(item.type==='income'?item.amount:-item.amount,data.currency)));
+    if(!readOnly && !item.isCard && !item.sourceDebtId && !item.sourcePotId){
+      var del=el('button',{class:'icon-btn','aria-label':'Remove',onClick:function(){ if(item.recurring){ data.skips[item.id]=true; } else { data.oneOffs=(data.oneOffs||[]).filter(function(o){return o.id!==item.id;}); } commit(); }});
+      del.appendChild(svg(ICON3.x,15,C.textFaint)); rt.appendChild(del);
+    }
+    r.appendChild(rt);
+    return r;
+  }
+
+  /* ---------- check-in sheet: update balance + Amex ---------- */
+  function renderCheckinSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'4px'}},'Check in'));
+    sh.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim,marginBottom:'18px',lineHeight:'1.5'}},'Update your real balance so the forecast stays accurate.'));
+
+    // ---- Balance ----
+    sh.appendChild(el('div',{class:'label'},'Balance today'));
+    var balVal = (stx.ciBalance!==undefined ? stx.ciBalance : data.currentBalance);
+    var bal=el('input',{class:'input mono',style:{fontSize:'20px',marginBottom:'6px'},type:'number',inputmode:'decimal',value:balVal});
+    bal.addEventListener('input',function(e){ stx.ciBalance=e.target.value; });
+    sh.appendChild(bal);
+    sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'22px'}},'Last set '+(data.asOfDate?parseISO(data.asOfDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'—')));
+
+    // ---- Amex section ----
+    var card=data.card;
+    if(card && card.enabled!==false){
+      var ss=card.statementStartDay||8;
+      var roles0=currentAndNextCycleKeys(card, todayMidnight());
+      sh.appendChild(el('div',{style:{borderTop:'1px solid '+C.lineSoft,margin:'4px 0 18px'}}));
+      sh.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'700',marginBottom:'3px'}},(card.name||'Amex')));
+      sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'14px',lineHeight:'1.4'}},'The figures from your '+(card.name||'Amex')+' app.'));
+
+      // Balance due (always)
+      sh.appendChild(el('div',{class:'label'},'Balance due'));
+      var due=el('input',{class:'input mono',style:{marginBottom:'14px'},type:'number',inputmode:'decimal',value:(stx.ciDue!==undefined?stx.ciDue:(card.openingAmount||'')),placeholder:'0'});
+      due.addEventListener('input',function(e){ stx.ciDue=e.target.value; });
+      sh.appendChild(due);
+
+      // Total balance — revealed by + (statement generated)
+      var hasTotal = (roles0.nextKey && card.manual && card.manual[roles0.nextKey]>0);
+      var showTotal = stx.ciShowTotal || hasTotal;
+      if(!showTotal){
+        var link=el('button',{style:{display:'flex',alignItems:'center',gap:'7px',background:'none',border:'none',color:C.accent,fontSize:'13px',fontWeight:'600',padding:'2px 0'},onClick:function(){ stx.ciShowTotal=true; render(); }});
+        link.appendChild(svg(ICON3.plus,15,C.accent));
+        link.appendChild(document.createTextNode('Add total balance'));
+        sh.appendChild(link);
+        sh.appendChild(el('div',{style:{fontSize:'10px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}},'Once your statement generates, add the card\u2019s total balance.'));
+      } else {
+        sh.appendChild(el('div',{class:'label'},'Total balance'));
+        var tot=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:(stx.ciTotal!==undefined?stx.ciTotal:((roles0.nextKey&&card.manual&&card.manual[roles0.nextKey])||'')),placeholder:'0'});
+        tot.addEventListener('input',function(e){ stx.ciTotal=e.target.value; });
+        sh.appendChild(tot);
+        sh.appendChild(el('div',{style:{fontSize:'10px',marginTop:'6px',color:C.textFaint}},'Everything on the card today.'));
+      }
+    }
+
+    // ---- Save ----
+    var save=el('button',{class:'btn btn-accent',style:{marginTop:'24px'},onClick:function(){
+      // balance
+      if(stx.ciBalance!==undefined && stx.ciBalance!==''){ var v=parseFloat(stx.ciBalance); if(!isNaN(v)){ data.currentBalance=v; data.asOfDate=todayISO(); } }
+      // amex due
+      if(card && card.enabled!==false){
+        if(stx.ciDue!==undefined){ var dv=parseFloat(stx.ciDue); card.openingAmount=isNaN(dv)?0:dv; }
+        var roles1=currentAndNextCycleKeys(card, todayMidnight());
+        if(stx.ciShowTotal || (roles1.nextKey&&card.manual&&card.manual[roles1.nextKey]>0)){
+          if(stx.ciTotal!==undefined){ if(!card.manual)card.manual={}; var tv=parseFloat(stx.ciTotal); if(tv>0)card.manual[roles1.nextKey]=tv; else delete card.manual[roles1.nextKey]; }
+        }
+      }
+      stx.ciBalance=undefined; stx.ciDue=undefined; stx.ciTotal=undefined; stx.ciShowTotal=false;
+      modal=null; saveData(data); if(root)root._bgBuilt=false; render();
+    }},'Save');
+    sh.appendChild(save);
+    sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ stx.ciBalance=undefined; stx.ciDue=undefined; stx.ciTotal=undefined; stx.ciShowTotal=false; modal=null; render(); }},'Cancel'));
+
+    bg.appendChild(sh);
+    return bg;
+  }
+
+  /* ---------- one-off sheet ---------- */
+  function renderOneOffSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    var editing=modal.type==='editOneoff';
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'16px'}},editing?'Edit transaction':'Add one-off'));
+    // type switch
+    var tg=el('div',{class:'seg',style:{marginBottom:'14px'}});
+    ['expense','income'].forEach(function(t){
+      tg.appendChild(el('button',{class:modal.ttype===t?'on':'',onClick:function(){ modal.ttype=t; render(); }}, t==='expense'?'Expense':'Income'));
+    });
+    sh.appendChild(tg);
+    sh.appendChild(el('label',{class:'label'},'Description'));
+    var nm=el('input',{class:'input',style:{marginBottom:'12px'},value:modal.name,placeholder:'What is it?'}); nm.addEventListener('input',function(e){ modal.name=e.target.value; }); sh.appendChild(nm);
+    sh.appendChild(el('label',{class:'label'},'Date'));
+    var dt=el('input',{class:'input',style:{marginBottom:'12px'},type:'date',value:modal.date}); dt.addEventListener('change',function(e){ if(e.target.value)modal.date=e.target.value; }); sh.appendChild(dt);
+    sh.appendChild(el('label',{class:'label'},'Amount'));
+    var am=el('input',{class:'input mono',style:{marginBottom:'18px'},type:'number',inputmode:'decimal',value:modal.amount,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
+    sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){
+      var a=parseFloat(modal.amount); if(!a||a<=0)return;
+      if(editing){
+        (data.oneOffs||[]).forEach(function(o){ if(o.id===modal.id){ o.name=(modal.name||'').trim()||o.name; o.amount=a; o.type=modal.ttype; o.date=modal.date; } });
+      } else {
+        data.oneOffs=data.oneOffs||[]; data.oneOffs.push({id:genId(),date:modal.date,name:(modal.name||'').trim()||(modal.ttype==='income'?'Income':'Expense'),type:modal.ttype,amount:a});
+      }
+      modal=null; commit();
+    }},editing?'Save changes':'Add transaction'));
+    if(editing){
+      sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px',color:C.rust,borderColor:'transparent'},onClick:function(){ data.oneOffs=(data.oneOffs||[]).filter(function(o){return o.id!==modal.id;}); modal=null; commit(); }},'Delete'));
+    }
+    bg.appendChild(sh);
+    return bg;
+  }
+
+  /* ---------- occurrence (recurring instance) sheet ---------- */
+  function renderOccSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    var rec=data.recurring.filter(function(r){return r.id===modal.recurringId;})[0];
+    var key=modal.key;
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'3px'}},modal.name));
+    sh.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim,marginBottom:'16px'}},'Just this occurrence · '+dayLabel(modal.date)));
+    sh.appendChild(el('label',{class:'label'},'Amount this time'));
+    var ov=(data.overrides&&data.overrides[key]!==undefined&&data.overrides[key]!==null)?data.overrides[key]:(rec?rec.amount:modal.amount);
+    var am=el('input',{class:'input mono',style:{marginBottom:'14px'},type:'number',inputmode:'decimal',value:ov,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
+    sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){ var a=parseFloat(modal.amount); if(isNaN(a))return; if(!data.overrides)data.overrides={}; data.overrides[key]=a; modal=null; commit(); }},'Save this occurrence'));
+    if(data.overrides&&data.overrides[key]!==undefined){
+      sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ delete data.overrides[key]; modal=null; commit(); }},'Reset to usual amount'));
+    }
+    sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ data.skips[key]=true; modal=null; commit(); }},'Skip this occurrence'));
+    sh.appendChild(el('div',{style:{borderTop:'1px solid '+C.line,margin:'18px 0 14px'}}));
+    sh.appendChild(el('button',{class:'btn btn-ghost',onClick:function(){ tab='settings'; modal={type:'settings'}; expanded={}; if(rec) expanded['rec:'+rec.id]=true; render(); }},'Edit the whole series'));
+    bg.appendChild(sh);
+    return bg;
+  }
+
+
+  /* ---------- card screen ---------- */
+  function renderCard(){
+    var wrap=el('div',{class:'wrap'});
+    var card=data.card;
+    wrap.appendChild(el('div',{style:{marginBottom:'14px'}},[
+      el('div',{style:{fontSize:'27px',fontWeight:'700',letterSpacing:'-.02em',lineHeight:'1'}},'Amex')
+    ]));
+    wrap.appendChild(el('div',{style:{fontSize:'13px',color:C.textDim,lineHeight:'1.5',marginBottom:'18px'}},'Spending you flag as “Pays via Amex” folds into the statement it falls in, paid as one bill. Update your figures from Check-in and the forecast handles the rest.'));
+
+    // enable toggle
+    var enRow=el('div',{class:'grp',style:{marginBottom:'16px'}});
+    var enHead=el('div',{class:'row-item'});
+    enHead.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'600'}},'Card enabled'));
+    enHead.appendChild(toggle(card.enabled,function(v){ card.enabled=v; commit(); }));
+    enRow.appendChild(enHead);
+    wrap.appendChild(enRow);
+
+    if(card.enabled){
+      // config
+      var cfg=el('div',{class:'grp',style:{marginBottom:'16px',padding:'16px 17px'}});
+      cfg.appendChild(el('label',{class:'label'},'Card name'));
+      var nm=el('input',{class:'input',style:{marginBottom:'13px'},value:card.name||'Amex'}); nm.addEventListener('input',function(e){ card.name=e.target.value; saveQuiet(); }); cfg.appendChild(nm);
+      var dr=el('div',{style:{display:'flex',gap:'10px',marginBottom:'13px'}});
+      var w1=el('div',{style:{flex:'1'}}); w1.appendChild(el('label',{class:'label'},'Statement starts'));
+      var s1=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if(i===(card.statementStartDay||8))o.selected=true; s1.appendChild(o);} s1.addEventListener('change',function(e){ card.statementStartDay=parseInt(e.target.value,10); commit(); }); w1.appendChild(s1); dr.appendChild(w1);
+      var w2=el('div',{style:{flex:'1'}}); w2.appendChild(el('label',{class:'label'},'Payment day'));
+      var s2=el('select',{class:'input'}); for(var j=1;j<=28;j++){ var o2=el('option',{value:j},'Day '+j); if(j===(card.paymentDay||19))o2.selected=true; s2.appendChild(o2);} s2.addEventListener('change',function(e){ card.paymentDay=parseInt(e.target.value,10); commit(); }); w2.appendChild(s2); dr.appendChild(w2);
+      cfg.appendChild(dr);
+      cfg.appendChild(rowToggle('Move weekend payments to Monday',card.rollWeekend!==false,function(v){ card.rollWeekend=v; commit(); }));
+      var ss=card.statementStartDay||8;
+      var closeDay=(ss-1)||31; // a cycle closes the day before the next start
+      var sameMonth=(card.paymentDay||19)>closeDay;
+      var whenTxt=sameMonth?'day '+(card.paymentDay||19)+' that month':'day '+(card.paymentDay||19)+' of the following month';
+      cfg.appendChild(el('div',{style:{fontSize:'11px',marginTop:'10px',color:C.textFaint,lineHeight:'1.4'}},'Runs day '+ss+' → day '+closeDay+' next month, paid '+whenTxt+'. The payment month is worked out automatically from the two days above.'));
+      wrap.appendChild(cfg);
+
+      // ── "Your Amex right now" — read-only summary; edit via Check-in ──
+      var roles0=currentAndNextCycleKeys(card, todayMidnight());
+      var nextPay=nextCardPaymentOnOrAfter(card, todayMidnight());
+      var payTxt=nextPay?nextPay.toLocaleDateString('en-GB',{day:'numeric',month:'long'}):'—';
+      var totalBal=(roles0.nextKey&&card.manual&&card.manual[roles0.nextKey])||0;
+      var nextCyc2 = roles0.nextKey ? cycleFor(parseISO(roles0.nextKey),ss) : null;
+      var nextPayDate2 = nextCyc2 ? cardPaymentDate(nextCyc2.closeY, nextCyc2.closeM, card.paymentDay||19, (card.rollWeekend!==false?'mon':false), nextCyc2.end.getDate()) : null;
+      var nextPayTxt2 = nextPayDate2 ? nextPayDate2.toLocaleDateString('en-GB',{day:'numeric',month:'long'}) : '—';
+
+      var ob=el('div',{class:'grp',style:{marginBottom:'16px',padding:'16px 17px'}});
+      var obHead=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'3px'}});
+      obHead.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'700'}},'Your '+(card.name||'Amex')+' right now'));
+      // secondary-tap edit -> opens the Check-in sheet (canonical entry point)
+      var editBtn=el('button',{style:{display:'flex',alignItems:'center',gap:'5px',background:'none',border:'none',color:C.accent,fontSize:'12px',fontWeight:'600',padding:'2px 0'},onClick:function(){ modal={type:'checkin'}; stx.ciShowTotal=(totalBal>0); render(); }});
+      editBtn.appendChild(svg(ICON3.edit||'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',13,C.accent));
+      editBtn.appendChild(document.createTextNode('Update'));
+      obHead.appendChild(editBtn);
+      ob.appendChild(obHead);
+      ob.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'14px',lineHeight:'1.4'}},'Updated from Check-in. Tap Update to change these figures.'));
+
+      // Read-only: Balance due
+      ob.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'4px 0'}},[
+        el('div',{style:{minWidth:'0'}},[
+          el('div',{style:{fontSize:'13px',fontWeight:'600'}},'Balance due'),
+          el('div',{style:{fontSize:'10px',marginTop:'1px',color:C.textFaint}},'Pays '+payTxt)
+        ]),
+        el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'700',color:(card.openingAmount>0?C.amber:C.textFaint)}}, card.openingAmount>0?fmt(card.openingAmount,data.currency):'—')
+      ]));
+
+      // Read-only: Total balance (only if entered)
+      if(totalBal>0){
+        ob.appendChild(el('div',{style:{borderTop:'1px solid '+C.lineSoft,margin:'10px 0'}}));
+        ob.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'4px 0'}},[
+          el('div',{style:{minWidth:'0'}},[
+            el('div',{style:{fontSize:'13px',fontWeight:'600'}},'Total balance'),
+            el('div',{style:{fontSize:'10px',marginTop:'1px',color:C.textFaint}},'Everything on the card today')
+          ]),
+          el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'700',color:C.amber}}, fmt(totalBal,data.currency))
+        ]));
+      }
+
+      // Plain-English result line
+      if(card.openingAmount>0 || totalBal>0){
+        var res=el('div',{style:{marginTop:'14px',padding:'11px 13px',borderRadius:'12px',background:C.surface2,fontSize:'11px',color:C.textDim,lineHeight:'1.5'}});
+        var parts=[];
+        if(card.openingAmount>0) parts.push('You\u2019ll pay '+fmt(card.openingAmount,data.currency)+' on '+payTxt+'.');
+        if(totalBal>0){
+          var carry=Math.max(0,totalBal-(card.openingAmount||0));
+          parts.push(carry>0 ? (fmt(carry,data.currency)+' of new spending has started next month\u2019s bill (due '+nextPayTxt2+').') : ('Nothing new on next month\u2019s bill yet (due '+nextPayTxt2+').'));
+        }
+        res.appendChild(el('div',null,parts.join(' ')));
+        ob.appendChild(res);
+      } else {
+        ob.appendChild(el('div',{style:{marginTop:'12px',fontSize:'11px',color:C.textFaint,lineHeight:'1.4'}},'No figures yet \u2014 tap Update to enter your balance due.'));
+      }
+      wrap.appendChild(ob);
+
+      // statements
+      wrap.appendChild(el('div',{class:'eyebrow',style:{marginBottom:'9px',paddingLeft:'3px'}},'Statements'));
+      var today=todayMidnight();
+      var roles=currentAndNextCycleKeys(card, today);
+      var flaggedByCycle={}, futureFlaggedByCycle={}, breakdownByCycle={};
+      (function(){
+        var scanEnd=addDays(today,7*31);
+        var manualMap=card.manual||{};
+        // A passed (already-dated) line is "covered" — folded into a real figure you've entered —
+        // when: the current cycle has this-month's-bill (openingAmount) entered; OR the next cycle
+        // has a total card balance entered (that total already includes these charges); OR any cycle
+        // has its own manual figure. In all cases only PAST-dated lines are covered; future ones stay.
+        function isCovered(ckey, passed){
+          if(!passed) return false;
+          if(ckey===roles.currentKey && (card.openingAmount||0)>0) return true;
+          if(ckey===roles.nextKey && (manualMap[ckey]||0)>0) return true;
+          if(ckey!==roles.nextKey && (manualMap[ckey]||0)>0) return true;
+          return false;
+        }
+        function addLine(ck,name,date,amt,covered,okey){ if(!breakdownByCycle[ck])breakdownByCycle[ck]=[]; breakdownByCycle[ck].push({name:name,date:date,sum:amt,covered:covered,okey:okey}); }
+        data.recurring.forEach(function(it){ if(it.onCard&&it.type==='expense'){ occurrences(it,addDays(today,-40),scanEnd).forEach(function(d){ var k=it.id+'|'+d; if(data.skips&&data.skips[k])return; var ov=data.overrides?data.overrides[k]:undefined; var amt=(ov!==undefined&&ov!==null)?ov:it.amount; var c=cycleFor(parseISO(d),ss); var passed=parseISO(d)<=today; var covered=isCovered(c.key,passed); if(!covered) flaggedByCycle[c.key]=(flaggedByCycle[c.key]||0)+amt; if(!passed) futureFlaggedByCycle[c.key]=(futureFlaggedByCycle[c.key]||0)+amt; addLine(c.key,it.name,d,amt,covered,k); }); } });
+        (data.oneOffs||[]).forEach(function(o){ if(o.onCard&&o.type==='expense'){ var c=cycleFor(parseISO(o.date),ss); var passed=parseISO(o.date)<=today; var covered=isCovered(c.key,passed); if(!covered) flaggedByCycle[c.key]=(flaggedByCycle[c.key]||0)+o.amount; if(!passed) futureFlaggedByCycle[c.key]=(futureFlaggedByCycle[c.key]||0)+o.amount; addLine(c.key,o.name||'One-off',o.date,o.amount,covered,'oneoff|'+(o.id||o.date)); } });
+      })();
+      var loopC=cycleFor(today,ss);
+      for(var ci=0;ci<6;ci++){
+        (function(c){
+          var isNext = c.key===roles.nextKey;
+          var isCurrent = c.key===roles.currentKey;
+          var flagged=flaggedByCycle[c.key]||0;
+          var man=(card.manual&&card.manual[c.key])||0;
+          var total;
+          var phase2cur = (card.manual&&card.manual[roles.nextKey]>0);
+          if(isCurrent && (card.openingAmount||0)>0){
+            // Phase 2 (total balance entered → statement generated): bill is fixed, bill only.
+            // Phase 1 (mid-cycle): bill + this cycle's future estimates.
+            total = phase2cur ? card.openingAmount : (card.openingAmount + (futureFlaggedByCycle[c.key]||0));
+          } else if(isNext && man>0){
+            // next statement: man is the TOTAL balance; carry = total − current statement
+            var carry=Math.max(0, man-(card.openingAmount||0));
+            total=carry + (futureFlaggedByCycle[c.key]||0);
+          } else {
+            total=flagged+man;
+          }
+          var pay=cardPaymentDate(c.closeY,c.closeM,card.paymentDay||19,(card.rollWeekend!==false?'mon':false),c.end.getDate());
+          var cOpen=!!stx.cardExpanded[c.key];
+          var g=el('div',{class:'grp',style:{marginBottom:'10px'},'data-cycle':c.key});
+          var gh=el('button',{class:'grp-head',onClick:function(){ stx.cardExpanded[c.key]=!cOpen; render(); }});
+          var gl=el('div',{style:{minWidth:'0'}});
+          gl.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'600'}},c.start.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+c.end.toLocaleDateString('en-GB',{day:'numeric',month:'short'})));
+          gl.appendChild(el('div',{style:{fontSize:'11px',marginTop:'2px',color:C.textDim}},'Pays '+pay.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+(isNext?' · next':'')));
+          gh.appendChild(gl);
+          gh.appendChild(el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'600',color:total>0?C.text:C.textFaint}},fmt(total,data.currency)));
+          g.appendChild(gh);
+          if(cOpen){
+            var lines=(breakdownByCycle[c.key]||[]).slice().sort(function(x,y){return x.date<y.date?-1:(x.date>y.date?1:0);});
+            if(lines.length===0&&man<=0) g.appendChild(el('div',{style:{padding:'10px 17px',fontSize:'11px',color:C.textFaint}},'Nothing flagged in this statement yet.'));
+            lines.forEach(function(it){
+              var amtColor = it.covered ? C.textFaint : C.textDim;
+              var passed = parseISO(it.date)<=today;
+              // Only future lines on the NEXT PAYABLE statement (the current cycle) can be marked
+              // partly/fully consumed early. Consumed is display-only; total balance drives the maths.
+              var canConsume = (c.key===roles.currentKey) && !passed && !it.covered && it.okey;
+              var consumedAmt = (card.consumed && it.okey && card.consumed[it.okey]>0) ? Math.min(card.consumed[it.okey], it.sum) : 0;
+              var subText;
+              if(it.covered) subText = dayLabel(it.date);
+              else if(consumedAmt>0 && consumedAmt>=it.sum) subText = dayLabel(it.date)+' · all spent';
+              else if(consumedAmt>0) subText = dayLabel(it.date)+' · '+fmt(consumedAmt,data.currency)+' spent · '+fmt(it.sum-consumedAmt,data.currency)+' to come';
+              else subText = dayLabel(it.date);
+              var fullyConsumed = consumedAmt>0 && consumedAmt>=it.sum;
+              var nameCell = el('div',{style:{minWidth:'0'}},[
+                el('div',{class:'trunc',style:{fontSize:'13px',color:(it.covered||fullyConsumed)?C.textFaint:C.text}}, it.name+(it.covered?' · in manual':'')),
+                el('div',{style:{fontSize:'10px',marginTop:'1px',color:(consumedAmt>0&&!it.covered)?C.accent:C.textFaint}}, subText)
+              ]);
+              var amtCell = el('div',{class:'mono',style:{fontSize:'13px',flexShrink:'0',color:(it.covered||fullyConsumed)?C.textFaint:amtColor,textDecoration:(it.covered||fullyConsumed)?'line-through':'none'}},fmt(it.sum,data.currency));
+              var rowEl;
+              if(canConsume){
+                rowEl=el('button',{style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'7px 17px',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',borderBottom:'none',textAlign:'left'},onClick:function(){ modal={type:'consume',okey:it.okey,name:it.name,date:it.date,sum:it.sum}; render(); }});
+                rowEl.appendChild(nameCell); rowEl.appendChild(amtCell);
+              } else {
+                rowEl=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'7px 17px',borderTop:'1px solid '+C.lineSoft}},[ nameCell, amtCell ]);
+              }
+              g.appendChild(rowEl);
+            });
+            if(isCurrent){
+              if((card.openingAmount||0)>0){
+                if(phase2cur){
+                  // Statement generated: bill is fixed until paid.
+                  g.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'10px 17px',borderTop:'1px solid '+C.lineSoft}},[
+                    el('div',{style:{fontSize:'12px',color:C.textDim,minWidth:'0',lineHeight:'1.3'}},'Statement generated · fixed until paid'),
+                    el('div',{class:'mono',style:{fontSize:'13px',flexShrink:'0',color:C.textDim}},fmt(card.openingAmount,data.currency))
+                  ]));
+                } else {
+                  // Mid-cycle: bill so far + future estimates (consumed shifts to already-spent).
+                  var rawToCome=futureFlaggedByCycle[c.key]||0;
+                  var consumedInCycle=0;
+                  (breakdownByCycle[c.key]||[]).forEach(function(ln){ if(parseISO(ln.date)>today && card.consumed && card.consumed[ln.okey]>0){ consumedInCycle+=Math.min(card.consumed[ln.okey], ln.sum); } });
+                  var toCome=Math.max(0, rawToCome-consumedInCycle);
+                  var alreadySpent=card.openingAmount+consumedInCycle;
+                  var noteTxt = consumedInCycle>0
+                    ? fmt(alreadySpent,data.currency)+' spent ('+fmt(card.openingAmount,data.currency)+' bill + '+fmt(consumedInCycle,data.currency)+' early) + '+fmt(toCome,data.currency)+' to come'
+                    : fmt(card.openingAmount,data.currency)+' bill + '+fmt(toCome,data.currency)+' to come';
+                  g.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'10px 17px',borderTop:'1px solid '+C.lineSoft}},[
+                    el('div',{style:{fontSize:'12px',color:C.textDim,minWidth:'0',lineHeight:'1.3'}}, noteTxt),
+                    el('div',{class:'mono',style:{fontSize:'13px',flexShrink:'0',color:C.textDim}},fmt(alreadySpent+toCome,data.currency))
+                  ]));
+                }
+              } else {
+                g.appendChild(el('div',{style:{padding:'10px 17px',fontSize:'11px',color:C.textFaint,borderTop:'1px solid '+C.lineSoft,lineHeight:'1.4'}},'Enter this month\u2019s bill at the top to set this statement.'));
+              }
+            } else if(isNext){
+              // The total-balance input now lives in the unified card above; show the carry here read-only.
+              var mv=(card.manual&&card.manual[c.key])||0;
+              if(mv>0){
+                var carry2=Math.max(0,mv-(card.openingAmount||0));
+                g.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'10px 17px',borderTop:'1px solid '+C.lineSoft}},[
+                  el('div',{style:{fontSize:'12px',color:C.textDim,minWidth:'0',lineHeight:'1.3'}},'Already spent (from total balance)'),
+                  el('div',{class:'mono',style:{fontSize:'13px',flexShrink:'0',color:C.textDim}},fmt(carry2,data.currency))
+                ]));
+              } else {
+                g.appendChild(el('div',{style:{padding:'10px 17px',fontSize:'11px',color:C.textFaint,borderTop:'1px solid '+C.lineSoft,lineHeight:'1.4'}},'Add your total card balance at the top to set this statement\u2019s starting point.'));
+              }
+            } else {
+              var mwrap=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'10px 17px',borderTop:'1px solid '+C.lineSoft}});
+              mwrap.appendChild(el('div',{style:{fontSize:'13px',color:C.textDim,minWidth:'0'}},'Manual spend'));
+              var mi=el('input',{class:'input mono',style:{width:'110px',padding:'7px 9px',textAlign:'right',flexShrink:'0'},type:'number',inputmode:'decimal',value:man||'',placeholder:'0'});
+              mi.addEventListener('input',function(e){ if(!card.manual)card.manual={}; var v=parseFloat(e.target.value); if(v>0)card.manual[c.key]=v; else delete card.manual[c.key]; saveQuiet(); gh.lastChild.textContent=fmt((flaggedByCycle[c.key]||0)+(card.manual[c.key]||0),data.currency); });
+              mwrap.appendChild(mi);
+              g.appendChild(mwrap);
+            }
+          }
+          wrap.appendChild(g);
+        })(loopC);
+        loopC=cycleFor(addDays(loopC.end,1),ss);
+      }
+    }
+    return wrap;
+  }
+
+  /* ---------- debts screen ---------- */
+  function renderDebts(){
+    var wrap=el('div',{class:'wrap'});
+    wrap.appendChild(el('div',{style:{marginBottom:'14px'}},[
+      el('div',{style:{fontSize:'27px',fontWeight:'700',letterSpacing:'-.02em',lineHeight:'1'}},'Money')
+    ]));
+    // sub-toggle: Debts / Savings
+    var seg=el('div',{class:'seg',style:{marginBottom:'18px'}});
+    ['savings','debts'].forEach(function(s){ seg.appendChild(el('button',{class:stx.moneySub===s?'on':'',onClick:function(){ stx.moneySub=s; render(); }}, s==='debts'?'Debts':'Savings')); });
+    wrap.appendChild(seg);
+    if(stx.moneySub==='savings'){ renderSavingsInto(wrap); return wrap; }
+    wrap.appendChild(el('div',{style:{fontSize:'13px',color:C.textDim,lineHeight:'1.5',marginBottom:'18px'}},'Track what you owe down to zero. The payments are already counted in your forecast — this is your paydown progress.'));
+
+    if((data.debts||[]).length===0){
+      wrap.appendChild(el('div',{class:'grp',style:{padding:'22px 17px',textAlign:'center'}},[
+        el('div',{style:{fontSize:'13px',color:C.textDim,marginBottom:'4px'}},'No debts tracked yet.'),
+        el('div',{style:{fontSize:'12px',color:C.textFaint}},'Add a loan or finance agreement to watch it shrink.')
+      ]));
+    }
+
+    (data.debts||[]).forEach(function(debt){
+      var sch=debtSchedule(debt);
+      var pct = sch.original>0 ? Math.min(100, Math.round((sch.paidTotal/sch.original)*100)) : 0;
+      var cleared = sch.remaining<=0;
+      var g=el('div',{class:'grp',style:{marginBottom:'12px',padding:'16px 17px'}});
+
+      // header row: name + edit
+      var top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'10px',marginBottom:'12px'}});
+      top.appendChild(el('div',{style:{minWidth:'0'}},[
+        el('div',{class:'trunc',style:{fontSize:'16px',fontWeight:'700'}},debt.name||'Debt'),
+        el('div',{style:{fontSize:'11px',marginTop:'2px',color:debt._recovered?C.amber:C.textFaint}}, debt._recovered?'Recovered from backup · check the original amount':(cleared?'Cleared':('Clears '+(sch.payoff?parseISO(sch.payoff).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'—'))))
+      ]));
+      var edit=el('button',{class:'icon-btn','aria-label':'Edit debt',onClick:function(){ modal={type:'editDebt',id:debt.id}; render(); }});
+      edit.appendChild(svg(ICON3.gear,17,C.textFaint));
+      top.appendChild(edit);
+      g.appendChild(top);
+
+      // progress bar
+      var track=el('div',{style:{height:'10px',borderRadius:'8px',background:C.raised,overflow:'hidden',position:'relative'}});
+      track.appendChild(el('div',{style:{height:'100%',width:pct+'%',background:cleared?C.accent:C.accent,borderRadius:'8px',transition:'width .3s'}}));
+      g.appendChild(track);
+      g.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',marginTop:'8px'}},[
+        el('div',{style:{fontSize:'11px',color:C.textDim}},'Paid '+fmt(sch.paidTotal,data.currency)+' of '+fmt(sch.original,data.currency)),
+        el('div',{class:'mono',style:{fontSize:'11px',fontWeight:'600',color:cleared?C.accent:C.text}}, cleared?'Done':fmt(sch.remaining,data.currency)+' left')
+      ]));
+
+      // expandable schedule
+      var dkey='debt:'+debt.id, open=!!stx.debtExpanded[dkey];
+      var toggleBtn=el('button',{style:{width:'100%',marginTop:'12px',display:'flex',alignItems:'center',gap:'6px',background:'none',border:'none',color:C.textDim,fontSize:'12px',fontWeight:'600',padding:'0'},onClick:function(){ stx.debtExpanded[dkey]=!open; render(); }});
+      var chev=svg(ICON3.chevron,13,C.textDim); chev.style.transform=open?'rotate(90deg)':'none'; chev.style.transition='transform .18s';
+      toggleBtn.appendChild(chev);
+      toggleBtn.appendChild(document.createTextNode(open?'Hide payments':'Show '+sch.rows.length+' payments'));
+      g.appendChild(toggleBtn);
+
+      if(open){
+        var tbl=el('div',{style:{marginTop:'10px'}});
+        sch.rows.forEach(function(r){
+          var row=el('button',{style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'9px 0',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',borderBottom:'none',textAlign:'left'},onClick:function(){ modal={type:'editDebtPeriod',id:debt.id,index:r.index}; render(); }});
+          var left=el('div',{style:{display:'flex',alignItems:'center',gap:'9px',minWidth:'0'}});
+          // paid marker
+          var mark=el('div',{style:{width:'16px',height:'16px',borderRadius:'50%',flexShrink:'0',display:'flex',alignItems:'center',justifyContent:'center',background:r.paid?C.accent:'transparent',border:r.paid?'none':'1.5px solid '+C.line}});
+          if(r.paid) mark.appendChild(svg('<polyline points="20 6 9 17 4 12"/>',10,'#fff',3));
+          left.appendChild(mark);
+          left.appendChild(el('div',{style:{fontSize:'13px',color:r.paid?C.textDim:C.text}}, parseISO(r.date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})));
+          row.appendChild(left);
+          var ovr = debt.overrides && debt.overrides[r.index]!==undefined && debt.overrides[r.index]!==null;
+          row.appendChild(el('div',{class:'mono',style:{fontSize:'13px',flexShrink:'0',color:r.paid?C.textDim:C.text,fontWeight:ovr?'700':'400'}}, fmt(r.amount,data.currency)));
+          tbl.appendChild(row);
+        });
+        g.appendChild(tbl);
+      }
+      wrap.appendChild(g);
+    });
+
+    // add debt
+    // separation so the add-debt control doesn't crowd an expanded payment table
+    wrap.appendChild(el('div',{style:{height:'8px'}}));
+    wrap.appendChild(addDebtCard());
+    return wrap;
+  }
+
+  function addDebtCard(){
+    var open=!!stx.debtAddOpen;
+    var holder=el('div',{style:{marginTop:'10px'}});
+    var btn=el('button',{class:'btn btn-ghost',onClick:function(){ stx.debtAddOpen=!open; if(!open && !stx.dnew.startDate) stx.dnew.startDate=todayISO(); render(); }});
+    btn.appendChild(svg(ICON3.plus,16,C.accent)); btn.appendChild(document.createTextNode(open?'Close':'Add a debt'));
+    holder.appendChild(btn);
+    if(open){
+      var nd=stx.dnew;
+      var card=el('div',{class:'grp',style:{marginTop:'10px',padding:'16px 17px'}});
+      card.appendChild(el('label',{class:'label'},'Name'));
+      var nm=el('input',{class:'input',value:nd.name,placeholder:'e.g. Car loan'}); nm.addEventListener('input',function(e){ nd.name=e.target.value; }); card.appendChild(nm);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Original amount'));
+      var oa=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:nd.original,placeholder:'0'}); oa.addEventListener('input',function(e){ nd.original=e.target.value; }); card.appendChild(oa);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Monthly payment'));
+      var pa=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:nd.payment,placeholder:'0'}); pa.addEventListener('input',function(e){ nd.payment=e.target.value; }); card.appendChild(pa);
+      var dr=el('div',{style:{display:'flex',gap:'10px',marginTop:'10px'}});
+      var w1=el('div',{style:{flex:'1'}}); w1.appendChild(el('label',{class:'label'},'First payment'));
+      var sd=el('input',{class:'input',type:'date',value:nd.startDate||todayISO()}); sd.addEventListener('change',function(e){ nd.startDate=e.target.value; }); w1.appendChild(sd); dr.appendChild(w1);
+      var w2=el('div',{style:{flex:'1'}}); w2.appendChild(el('label',{class:'label'},'Payment day'));
+      var pd=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if(nd.paymentDay===i)o.selected=true; pd.appendChild(o);} pd.addEventListener('change',function(e){ nd.paymentDay=parseInt(e.target.value,10); }); w2.appendChild(pd); dr.appendChild(w2);
+      card.appendChild(dr);
+      // live preview of term
+      var prevAmt=parseFloat(nd.payment), prevOrig=parseFloat(nd.original);
+      if(prevAmt>0&&prevOrig>0){
+        var nP=Math.ceil(prevOrig/prevAmt);
+        card.appendChild(el('div',{style:{fontSize:'11px',marginTop:'10px',color:C.textFaint,lineHeight:'1.4'}}, nP+' payments of '+fmt(prevAmt,data.currency)+' (last one '+fmt(Math.max(0,Math.round((prevOrig-prevAmt*(nP-1))*100)/100),data.currency)+').'));
+      }
+      card.appendChild(el('button',{class:'btn btn-accent',style:{marginTop:'14px'},onClick:function(){
+        var orig=parseFloat(nd.original), pay=parseFloat(nd.payment);
+        if(!nd.name.trim()||!orig||!pay)return;
+        data.debts=data.debts||[];
+        var debt={id:genId(),name:nd.name.trim(),original:orig,payment:pay,startDate:nd.startDate||todayISO(),paymentDay:nd.paymentDay||parseISO(nd.startDate||todayISO()).getDate(),cadence:'monthly',interval:1,rollWeekend:true,group:'Debt',onCard:false,overrides:{}};
+        data.debts.push(debt);
+        syncDebtExpense(debt);
+        stx.dnew={name:'',original:'',payment:'',startDate:'',paymentDay:1};
+        stx.debtAddOpen=false; commit();
+      }},'Add debt'));
+      holder.appendChild(card);
+    }
+    return holder;
+  }
+
+  /* ---------- savings content ---------- */
+  function renderSavingsInto(wrap){
+    wrap.appendChild(el('div',{style:{fontSize:'13px',color:C.textDim,lineHeight:'1.5',marginBottom:'18px'}},'Money you set aside each month. Contributions leave your forecast balance, so what you see there is your spendable cash.'));
+    if((data.pots||[]).length===0){
+      wrap.appendChild(el('div',{class:'grp',style:{padding:'22px 17px',textAlign:'center'}},[
+        el('div',{style:{fontSize:'13px',color:C.textDim,marginBottom:'4px'}},'No savings pots yet.'),
+        el('div',{style:{fontSize:'12px',color:C.textFaint}},'Add a pot to start setting money aside.')
+      ]));
+    }
+    (data.pots||[]).forEach(function(pot){
+      var st=potState(pot);
+      var g=el('div',{class:'grp',style:{marginBottom:'12px',padding:'16px 17px'}});
+      var top=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'10px',marginBottom:'12px'}});
+      top.appendChild(el('div',{style:{minWidth:'0'}},[
+        el('div',{class:'trunc',style:{fontSize:'16px',fontWeight:'700'}},pot.name||'Savings'),
+        el('div',{style:{fontSize:'11px',marginTop:'2px',color:pot._recovered?C.amber:C.textFaint}}, pot._recovered?'Recovered from backup · set your target':(pot.contribution>0?fmt(pot.contribution,data.currency)+'/mo':'No regular contribution'))
+      ]));
+      var edit=el('button',{class:'icon-btn','aria-label':'Edit pot',onClick:function(){ modal={type:'editPot',id:pot.id}; render(); }});
+      edit.appendChild(svg(ICON3.gear,17,C.textFaint)); top.appendChild(edit);
+      g.appendChild(top);
+      // saved amount, big
+      g.appendChild(el('div',{class:'mono',style:{fontSize:'24px',fontWeight:'700',letterSpacing:'-.02em'}},fmt(st.saved,data.currency)));
+      // goal progress
+      if(st.target>0){
+        var pct=Math.min(100, Math.round((st.saved/st.target)*100));
+        var track=el('div',{style:{height:'10px',borderRadius:'8px',background:C.raised,overflow:'hidden',marginTop:'10px'}});
+        track.appendChild(el('div',{style:{height:'100%',width:pct+'%',background:C.accent,borderRadius:'8px',transition:'width .3s'}}));
+        g.appendChild(track);
+        g.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',marginTop:'8px'}},[
+          el('div',{style:{fontSize:'11px',color:C.textDim}},'Goal '+fmt(st.target,data.currency)+(st.targetDate?' by '+parseISO(st.targetDate).toLocaleDateString('en-GB',{month:'short',year:'numeric'}):'')),
+          el('div',{style:{fontSize:'11px',fontWeight:'600',color:st.onTrack?C.accent:C.rust}}, st.onTrack?'On track':'Behind')
+        ]));
+        if(st.projected!==null){
+          g.appendChild(el('div',{style:{fontSize:'11px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}}, st.onTrack? ('On course for '+fmt(st.projected,data.currency)+' by then.') : ('At this rate you\u2019ll have '+fmt(st.projected,data.currency)+' \u2014 '+fmt(Math.abs(st.shortfall),data.currency)+' short.')));
+        }
+      }
+      wrap.appendChild(g);
+    });
+    wrap.appendChild(el('div',{style:{height:'8px'}}));
+    wrap.appendChild(addPotCard());
+  }
+
+  function addPotCard(){
+    var open=!!stx.potAddOpen;
+    var holder=el('div');
+    var btn=el('button',{class:'btn btn-ghost',onClick:function(){ stx.potAddOpen=!open; if(!open && !stx.pnew.startDate) stx.pnew.startDate=todayISO(); render(); }});
+    btn.appendChild(svg(ICON3.plus,16,C.accent)); btn.appendChild(document.createTextNode(open?'Close':'Add a savings pot'));
+    holder.appendChild(btn);
+    if(open){
+      var p=stx.pnew;
+      var card=el('div',{class:'grp',style:{marginTop:'10px',padding:'16px 17px'}});
+      card.appendChild(el('label',{class:'label'},'Name'));
+      var nm=el('input',{class:'input',value:p.name,placeholder:'e.g. Holiday'}); nm.addEventListener('input',function(e){ p.name=e.target.value; }); card.appendChild(nm);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Monthly contribution'));
+      var ct=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:p.contribution,placeholder:'0'}); ct.addEventListener('input',function(e){ p.contribution=e.target.value; }); card.appendChild(ct);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Starting balance (optional)'));
+      var sb=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:p.startBalance,placeholder:'0'}); sb.addEventListener('input',function(e){ p.startBalance=e.target.value; }); card.appendChild(sb);
+      var dr=el('div',{style:{display:'flex',gap:'10px',marginTop:'16px'}});
+      var w1=el('div',{style:{flex:'1',minWidth:'0'}}); w1.appendChild(el('label',{class:'label'},'First contribution'));
+      var sd=el('input',{class:'input',type:'date',value:p.startDate||todayISO()}); sd.addEventListener('change',function(e){ p.startDate=e.target.value; }); w1.appendChild(sd); dr.appendChild(w1);
+      var w2=el('div',{style:{flex:'1',minWidth:'0'}}); w2.appendChild(el('label',{class:'label'},'Day'));
+      var pd=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if(p.paymentDay===i)o.selected=true; pd.appendChild(o);} pd.addEventListener('change',function(e){ p.paymentDay=parseInt(e.target.value,10); }); w2.appendChild(pd); dr.appendChild(w2);
+      card.appendChild(dr);
+      var dr2=el('div',{style:{display:'flex',gap:'10px',marginTop:'16px'}});
+      var t1=el('div',{style:{flex:'1',minWidth:'0'}}); t1.appendChild(el('label',{class:'label'},'Target (optional)'));
+      var tg=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:p.target,placeholder:'0'}); tg.addEventListener('input',function(e){ p.target=e.target.value; }); t1.appendChild(tg); dr2.appendChild(t1);
+      var t2=el('div',{style:{flex:'1',minWidth:'0'}}); t2.appendChild(el('label',{class:'label'},'By date'));
+      var td=el('input',{class:'input',type:'date',value:p.targetDate||''}); td.addEventListener('change',function(e){ p.targetDate=e.target.value; }); t2.appendChild(td); dr2.appendChild(t2);
+      card.appendChild(dr2);
+      card.appendChild(el('button',{class:'btn btn-accent',style:{marginTop:'14px'},onClick:function(){
+        if(!p.name.trim())return;
+        data.pots=data.pots||[];
+        var pot={id:genId(),name:p.name.trim(),contribution:parseFloat(p.contribution)||0,startBalance:parseFloat(p.startBalance)||0,startDate:p.startDate||todayISO(),paymentDay:p.paymentDay||1,rollWeekend:true,group:'Savings',target:parseFloat(p.target)||0,targetDate:p.targetDate||'',topups:[]};
+        data.pots.push(pot); syncPotExpense(pot);
+        stx.pnew={name:'',contribution:'',startBalance:'',startDate:'',paymentDay:1,target:'',targetDate:''};
+        stx.potAddOpen=false; commit();
+      }},'Add pot'));
+      holder.appendChild(card);
+    }
+    return holder;
+  }
+
+  /* ---------- pot edit sheet ---------- */
+  function renderPotSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    var pot=(data.pots||[]).filter(function(x){return x.id===modal.id;})[0];
+    if(!pot){ modal=null; return bg; }
+    function touch(){ syncPotExpense(pot); saveQuiet(); }
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'3px'}},'Edit pot'));
+    sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'16px',lineHeight:'1.4'}},'The monthly contribution leaves your forecast balance. Top-ups are extra one-off deposits.'));
+    sh.appendChild(el('label',{class:'label'},'Name'));
+    var nm=el('input',{class:'input',style:{marginBottom:'12px'},value:pot.name||''}); nm.addEventListener('input',function(e){ pot.name=e.target.value; touch(); }); sh.appendChild(nm);
+    sh.appendChild(el('label',{class:'label'},'Monthly contribution'));
+    var ct=el('input',{class:'input mono',style:{marginBottom:'12px'},type:'number',inputmode:'decimal',value:pot.contribution}); ct.addEventListener('input',function(e){ var v=parseFloat(e.target.value); pot.contribution=isNaN(v)?0:v; touch(); }); sh.appendChild(ct);
+    sh.appendChild(el('label',{class:'label'},'Starting balance'));
+    var sb=el('input',{class:'input mono',style:{marginBottom:'12px'},type:'number',inputmode:'decimal',value:pot.startBalance}); sb.addEventListener('input',function(e){ var v=parseFloat(e.target.value); pot.startBalance=isNaN(v)?0:v; saveQuiet(); }); sh.appendChild(sb);
+    var dr=el('div',{style:{display:'flex',gap:'10px',marginBottom:'12px'}});
+    var w1=el('div',{style:{flex:'1'}}); w1.appendChild(el('label',{class:'label'},'First contribution'));
+    var sd=el('input',{class:'input',type:'date',value:pot.startDate||''}); sd.addEventListener('change',function(e){ pot.startDate=e.target.value; touch(); }); w1.appendChild(sd); dr.appendChild(w1);
+    var w2=el('div',{style:{flex:'1'}}); w2.appendChild(el('label',{class:'label'},'Day'));
+    var pd=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if((pot.paymentDay||1)===i)o.selected=true; pd.appendChild(o);} pd.addEventListener('change',function(e){ pot.paymentDay=parseInt(e.target.value,10); touch(); }); w2.appendChild(pd); dr.appendChild(w2);
+    sh.appendChild(dr);
+    var dr2=el('div',{style:{display:'flex',gap:'10px',marginBottom:'4px'}});
+    var t1=el('div',{style:{flex:'1'}}); t1.appendChild(el('label',{class:'label'},'Target'));
+    var tg=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:pot.target}); tg.addEventListener('input',function(e){ var v=parseFloat(e.target.value); pot.target=isNaN(v)?0:v; saveQuiet(); }); t1.appendChild(tg); dr2.appendChild(t1);
+    var t2=el('div',{style:{flex:'1'}}); t2.appendChild(el('label',{class:'label'},'By date'));
+    var td=el('input',{class:'input',type:'date',value:pot.targetDate||''}); td.addEventListener('change',function(e){ pot.targetDate=e.target.value; touch(); }); t2.appendChild(td); dr2.appendChild(t2);
+    sh.appendChild(dr2);
+    sh.appendChild(rowToggle('Move weekend contributions to Monday', pot.rollWeekend!==false, function(v){ pot.rollWeekend=v; touch(); }));
+    sh.appendChild(el('button',{class:'btn btn-accent',style:{marginTop:'18px'},onClick:function(){ delete pot._recovered; syncPotExpense(pot); modal=null; commit(); }},'Done'));
+    sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px',color:C.rust},onClick:function(){ removePotExpense(pot.id); data.pots=(data.pots||[]).filter(function(x){return x.id!==pot.id;}); modal=null; commit(); }},'Delete pot & its contribution'));
+    bg.appendChild(sh);
+    return bg;
+  }
+
+  /* ---------- consume future line sheet (next payable statement only) ---------- */
+  function renderConsumeSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    var key=modal.okey, full=modal.sum||0;
+    var cur=(data.card&&data.card.consumed&&data.card.consumed[key]>0)?Math.min(data.card.consumed[key],full):0;
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'3px'}},'Already spent?'));
+    sh.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim,marginBottom:'16px',lineHeight:'1.4'}}, modal.name+' · '+parseISO(modal.date).toLocaleDateString('en-GB',{day:'numeric',month:'long'})+' · '+fmt(full,data.currency)+' planned'));
+    sh.appendChild(el('label',{class:'label'},'How much is already on the card?'));
+    var inp=el('input',{class:'input mono',style:{marginBottom:'10px'},type:'number',inputmode:'decimal',value:cur||'',placeholder:'0'}); inp.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(inp);
+    sh.appendChild(el('button',{class:'btn btn-line',style:{marginBottom:'14px',fontSize:'13px'},onClick:function(){ modal.amount=String(full); inp.value=full; }},'All of it ('+fmt(full,data.currency)+')'));
+    sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'14px',lineHeight:'1.4'}},'Marks part of this upcoming charge as already spent, so the statement reads true. Your total card balance is still what drives the forecast \u2014 this is just for clarity.'));
+    sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){
+      if(!data.card.consumed)data.card.consumed={};
+      var a=(modal.amount!==undefined&&modal.amount!=='')?parseFloat(modal.amount):cur;
+      if(isNaN(a)||a<=0){ delete data.card.consumed[key]; }
+      else { data.card.consumed[key]=Math.min(a, full); }
+      modal=null; commit();
+    }},'Save'));
+    if(cur>0){
+      sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ delete data.card.consumed[key]; modal=null; commit(); }},'Clear'));
+    }
+    bg.appendChild(sh);
+    return bg;
+  }
+
+  /* ---------- debt edit sheet ---------- */
+  function renderDebtSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    var debt=(data.debts||[]).filter(function(x){return x.id===modal.id;})[0];
+    if(!debt){ modal=null; return bg; }
+    function touch(){ syncDebtExpense(debt); saveQuiet(); }
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'3px'}},'Edit debt'));
+    sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'16px',lineHeight:'1.4'}},'This debt creates a matching expense in your forecast. Editing here keeps them in sync.'));
+    sh.appendChild(el('label',{class:'label'},'Name'));
+    var nm=el('input',{class:'input',style:{marginBottom:'12px'},value:debt.name||''}); nm.addEventListener('input',function(e){ debt.name=e.target.value; touch(); }); sh.appendChild(nm);
+    sh.appendChild(el('label',{class:'label'},'Original amount'));
+    var oa=el('input',{class:'input mono',style:{marginBottom:'12px'},type:'number',inputmode:'decimal',value:debt.original}); oa.addEventListener('input',function(e){ var v=parseFloat(e.target.value); if(!isNaN(v))debt.original=v; touch(); }); sh.appendChild(oa);
+    sh.appendChild(el('label',{class:'label'},'Payment amount'));
+    var pa=el('input',{class:'input mono',style:{marginBottom:'12px'},type:'number',inputmode:'decimal',value:debt.payment}); pa.addEventListener('input',function(e){ var v=parseFloat(e.target.value); if(!isNaN(v))debt.payment=v; touch(); }); sh.appendChild(pa);
+    // cadence
+    sh.appendChild(el('label',{class:'label'},'Repeats'));
+    var cg=el('div',{class:'seg',style:{marginBottom:'12px'}});
+    ['monthly','weekly'].forEach(function(cd){ cg.appendChild(el('button',{class:(debt.cadence==='weekly'?'weekly':'monthly')===cd?'on':'',onClick:function(){ debt.cadence=cd; touch(); render(); }}, cd==='monthly'?'Monthly':'Weekly')); });
+    sh.appendChild(cg);
+    if(debt.cadence==='weekly'){
+      sh.appendChild(el('label',{class:'label'},'Day of week'));
+      var ws=el('select',{class:'input',style:{marginBottom:'12px'}}); ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(dn,i){ var o=el('option',{value:i+1},dn); if((debt.dayOfWeek||1)===i+1)o.selected=true; ws.appendChild(o);}); ws.addEventListener('change',function(e){ debt.dayOfWeek=parseInt(e.target.value,10); touch(); }); sh.appendChild(ws);
+    }
+    var dr=el('div',{style:{display:'flex',gap:'10px',marginBottom:'12px'}});
+    var w1=el('div',{style:{flex:'1'}}); w1.appendChild(el('label',{class:'label'},'First payment'));
+    var sd=el('input',{class:'input',type:'date',value:debt.startDate||''}); sd.addEventListener('change',function(e){ debt.startDate=e.target.value; touch(); }); w1.appendChild(sd); dr.appendChild(w1);
+    if((debt.cadence==='weekly'?'weekly':'monthly')==='monthly'){
+      var w2=el('div',{style:{flex:'1'}}); w2.appendChild(el('label',{class:'label'},'Payment day'));
+      var pd=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if((debt.paymentDay||1)===i)o.selected=true; pd.appendChild(o);} pd.addEventListener('change',function(e){ debt.paymentDay=parseInt(e.target.value,10); touch(); }); w2.appendChild(pd); dr.appendChild(w2);
+    }
+    sh.appendChild(dr);
+    sh.appendChild(el('label',{class:'label'},'Group'));
+    var gp=el('input',{class:'input',style:{marginBottom:'4px'},value:debt.group||'Debt',placeholder:'e.g. Debt'}); gp.addEventListener('input',function(e){ debt.group=e.target.value; touch(); }); sh.appendChild(gp);
+    sh.appendChild(rowToggle('Move weekend payments to Monday', debt.rollWeekend!==false, function(v){ debt.rollWeekend=v; touch(); }));
+    if(data.card&&data.card.enabled){
+      sh.appendChild(rowToggle('Pays via '+(data.card.name||'Amex'), !!debt.onCard, function(v){ debt.onCard=v; touch(); }));
+    }
+    sh.appendChild(el('button',{class:'btn btn-accent',style:{marginTop:'18px'},onClick:function(){ delete debt._recovered; syncDebtExpense(debt); modal=null; commit(); }},'Done'));
+    sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px',color:C.rust},onClick:function(){ removeDebtExpense(debt.id); data.debts=(data.debts||[]).filter(function(x){return x.id!==debt.id;}); modal=null; commit(); }},'Delete debt & its expense'));
+    bg.appendChild(sh);
+    return bg;
+  }
+
+  /* ---------- single payment override sheet (amount + date) ---------- */
+  function renderDebtPeriodSheet(){
+    var bg=el('div',{class:'sheet-bg',onClick:function(e){ if(e.target===bg){ modal=null; render(); } }});
+    var sh=el('div',{class:'sheet'});
+    var debt=(data.debts||[]).filter(function(x){return x.id===modal.id;})[0];
+    if(!debt){ modal=null; return bg; }
+    var sch=debtSchedule(debt);
+    var row=sch.rows[modal.index];
+    var ov=debtOverride(debt, modal.index);
+    var schedDate=isoDate(debtPeriodDate(debt, modal.index));
+    sh.appendChild(el('div',{style:{width:'36px',height:'4px',borderRadius:'2px',background:C.line,margin:'0 auto 18px'}}));
+    sh.appendChild(el('div',{style:{fontSize:'18px',fontWeight:'700',marginBottom:'3px'}},'Edit payment'));
+    sh.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim,marginBottom:'16px'}},'Payment '+(modal.index+1)+' of '+sch.rows.length+(' · normally '+parseISO(schedDate).toLocaleDateString('en-GB',{day:'numeric',month:'short'}))));
+    sh.appendChild(el('label',{class:'label'},'Date'));
+    var curDate=(ov&&ov.date)?ov.date:(row?row.date:schedDate);
+    var dt=el('input',{class:'input',style:{marginBottom:'12px'},type:'date',value:curDate}); dt.addEventListener('change',function(e){ modal.date=e.target.value; }); sh.appendChild(dt);
+    sh.appendChild(el('label',{class:'label'},'Amount'));
+    var curAmt=(ov&&ov.amount!==undefined)?ov.amount:(row?row.amount:'');
+    var am=el('input',{class:'input mono',style:{marginBottom:'14px'},type:'number',inputmode:'decimal',value:curAmt,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
+    sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'14px',lineHeight:'1.4'}},'Change this one payment\u2019s date or amount (an overpayment, a skipped month moved later, a different final payment). The total number of payments stays the same.'));
+    sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){
+      if(!debt.overrides)debt.overrides={};
+      var entry={};
+      var a=(modal.amount!==undefined&&modal.amount!=='')?parseFloat(modal.amount):(row?row.amount:undefined);
+      if(a!==undefined&&!isNaN(a)) entry.amount=a;
+      var dval=modal.date||curDate;
+      if(dval && dval!==schedDate) entry.date=dval;
+      // if nothing actually differs from defaults, clear the override
+      if(entry.amount===undefined && entry.date===undefined){ delete debt.overrides[modal.index]; }
+      else debt.overrides[modal.index]=entry;
+      syncDebtExpense(debt); modal=null; commit();
+    }},'Save payment'));
+    if(ov){
+      sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ delete debt.overrides[modal.index]; syncDebtExpense(debt); modal=null; commit(); }},'Reset to normal'));
+    }
+    bg.appendChild(sh);
+    return bg;
+  }
+
+  function toggle(on,cb){
+    var state=!!on;
+    var knob;
+    var t=el('button',{style:{width:'44px',height:'26px',borderRadius:'13px',border:'none',background:state?C.accent:C.line,position:'relative',transition:'background .2s',flexShrink:'0'},onClick:function(){
+      state=!state;
+      t.style.background=state?C.accent:C.line;
+      knob.style.left=state?'21px':'3px';
+      cb(state);
+    }});
+    knob=el('div',{style:{position:'absolute',top:'3px',left:state?'21px':'3px',width:'20px',height:'20px',borderRadius:'50%',background:'#fff',transition:'left .2s'}});
+    t.appendChild(knob);
+    return t;
+  }
+  function rowToggle(label,on,cb){
+    var r=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'12px',marginTop:'11px'}});
+    r.appendChild(el('div',{style:{fontSize:'13px',color:C.textDim,lineHeight:'1.3'}},label));
+    r.appendChild(toggle(on,cb));
+    return r;
+  }
+
+  /* ---------- settings ---------- */
+  function renderSettings(){
+    var full=el('div');
+    var wrap=el('div',{class:'wrap'});
+    wrap.appendChild(el('div',{style:{marginBottom:'16px'}},[
+      el('div',{style:{fontSize:'27px',fontWeight:'700',letterSpacing:'-.02em',lineHeight:'1'}},'Manage')
+    ]));
+
+    // currency / payday  (balance is updated via Check-in)
+    var basics=el('div',{class:'grp',style:{marginBottom:'16px',padding:'16px 17px'}});
+    var br=el('div',{style:{display:'flex',gap:'10px'}});
+    var cw=el('div',{style:{flex:'1'}}); cw.appendChild(el('label',{class:'label'},'Currency'));
+    var cs=el('select',{class:'input'}); ['GBP','USD','EUR'].forEach(function(c){ var o=el('option',{value:c},c); if(c===data.currency)o.selected=true; cs.appendChild(o); }); cs.addEventListener('change',function(e){ data.currency=e.target.value; commit(); }); cw.appendChild(cs); br.appendChild(cw);
+    var pw=el('div',{style:{flex:'1'}}); pw.appendChild(el('label',{class:'label'},'Payday'));
+    var ps=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if(i===data.payDay)o.selected=true; ps.appendChild(o); } ps.addEventListener('change',function(e){ data.payDay=parseInt(e.target.value,10); commit(); }); pw.appendChild(ps); br.appendChild(pw);
+    basics.appendChild(br);
+    wrap.appendChild(basics);
+
+    // recurring items
+    wrap.appendChild(el('div',{class:'eyebrow',style:{marginBottom:'9px',paddingLeft:'3px'}},'Recurring items'));
+    var list=data.recurring.slice().sort(function(a,b){return (a.order||0)-(b.order||0);});
+    var byGroup={}; var groupOrder=[];
+    list.forEach(function(it){ var g=it.group||'Ungrouped'; if(!byGroup[g]){byGroup[g]=[];groupOrder.push(g);} byGroup[g].push(it); });
+    groupOrder.forEach(function(gName){
+      var items=byGroup[gName];
+      var sub=items.reduce(function(s,it){ return s+(it.type==='expense'?monthlyEquiv(it):0); },0);
+      wrap.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',marginTop:'14px',marginBottom:'7px',paddingLeft:'3px',paddingRight:'3px'}},[
+        el('div',{style:{fontSize:'12px',fontWeight:'600',color:C.textDim}},gName),
+        el('div',{class:'mono',style:{fontSize:'11px',color:C.textFaint}},sub>0?fmt(sub,data.currency)+'/mo':'')
+      ]));
+      var gc=el('div',{class:'grp'});
+      items.forEach(function(it){ gc.appendChild(recurringRow(it)); });
+      wrap.appendChild(gc);
+    });
+    // add recurring
+    wrap.appendChild(addRecurringCard());
+
+    // totals
+    var totalExp=list.reduce(function(s,it){ return s+(it.type==='expense'?monthlyEquiv(it):0); },0);
+    var totalInc=list.reduce(function(s,it){ return s+(it.type==='income'?monthlyEquiv(it):0); },0);
+    var tot=el('div',{class:'grp',style:{marginTop:'16px',padding:'16px 17px'}});
+    tot.appendChild(rowKV('Income / month',fmt(totalInc,data.currency),C.accent));
+    tot.appendChild(rowKV('Expenses / month',fmt(totalExp,data.currency),C.text,'8px'));
+    tot.appendChild(el('div',{style:{borderTop:'1px solid '+C.line,margin:'10px 0'}}));
+    tot.appendChild(rowKV('Net / month',fmtSigned(totalInc-totalExp,data.currency),(totalInc-totalExp)>=0?C.green:C.rust));
+    wrap.appendChild(tot);
+
+    // backup
+    wrap.appendChild(el('div',{class:'eyebrow',style:{marginTop:'20px',marginBottom:'9px',paddingLeft:'3px'}},'Backup & restore'));
+    var bk=el('div',{class:'grp',style:{padding:'16px 17px'}});
+    function rebuildBk(){ bk.innerHTML=''; fillBk(); }
+    function fillBk(){
+      bk.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim,marginBottom:'12px',lineHeight:'1.5'}},'Export copies your data to the clipboard. Import pastes it back \u2014 handy when you switch device or clear Safari.'));
+      // EXPORT: one tap copies to clipboard
+      var eb=el('button',{class:'btn btn-ghost',style:{marginBottom:'8px',background:stx.copied?C.greenSoft:undefined,color:stx.copied?C.accent:undefined},onClick:function(){
+        var txt=JSON.stringify(data,null,2);
+        var done=function(){ stx.copied=true; stx.exportText=null; rebuildBk(); setTimeout(function(){ stx.copied=false; if(tab==='settings'||(modal&&modal.type==='settings'))rebuildBk(); },1800); };
+        try{
+          if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,function(){ stx.exportText=txt; rebuildBk(); }); }
+          else { stx.exportText=txt; rebuildBk(); }
+        }catch(e){ stx.exportText=txt; rebuildBk(); }
+      }});
+      eb.appendChild(svg(stx.copied?ICON3.check:ICON3.download,16,stx.copied?C.accent:C.text));
+      eb.appendChild(document.createTextNode(stx.copied?'Copied to clipboard':'Export my data'));
+      bk.appendChild(eb);
+      // Fallback: only if clipboard failed, show the text to copy manually
+      if(stx.exportText!==null){
+        bk.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,margin:'2px 0 4px'}},'Couldn\u2019t reach the clipboard \u2014 copy this manually:'));
+        var ta=el('textarea',{class:'input mono',readonly:true,rows:4,style:{resize:'vertical'}}); ta.value=stx.exportText; bk.appendChild(ta);
+      }
+      // IMPORT
+      var ib=el('button',{class:'btn btn-ghost',style:{marginTop:'8px'},onClick:function(){ stx.importOpen=!stx.importOpen; stx.importError=false; stx.clipFail=false; rebuildBk(); }}); ib.appendChild(svg(ICON3.upload,16,C.text)); ib.appendChild(document.createTextNode('Import data')); bk.appendChild(ib);
+      if(stx.importOpen){
+        var doImport=function(text){
+          try{ var p=JSON.parse(text); if(!p||typeof p.currentBalance!=='number'||!Array.isArray(p.recurring))throw 0;
+            data=migrate(p);
+            stx.importText=''; stx.importOpen=false; stx.importError=false; stx.importDone=true; saveData(data); if(root)root._bgBuilt=false; render(); setTimeout(function(){ stx.importDone=false; if(tab==='settings'||(modal&&modal.type==='settings'))rebuildBk(); },1600);
+          }catch(e){ stx.importError=true; rebuildBk(); }
+        };
+        // One-tap paste & import
+        var pb=el('button',{class:'btn btn-accent',style:{marginTop:'8px',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'},onClick:function(){
+          stx.importError=false; stx.clipFail=false;
+          if(navigator.clipboard&&navigator.clipboard.readText){
+            navigator.clipboard.readText().then(function(t){
+              if(!t||!t.trim()){ stx.clipFail=true; rebuildBk(); return; }
+              doImport(t);
+            }, function(){ stx.clipFail=true; rebuildBk(); });
+          } else { stx.clipFail=true; rebuildBk(); }
+        }}); pb.appendChild(svg(ICON3.clipboard,16,'#fff')); pb.appendChild(document.createTextNode(stx.importDone?'\u2713 Imported':'Paste & import'));
+        bk.appendChild(pb);
+        if(stx.clipFail){
+          bk.appendChild(el('div',{style:{fontSize:'11px',marginTop:'6px',color:C.textDim,lineHeight:'1.5'}},'Couldn\u2019t read the clipboard here. Paste your data into the box below instead, then tap Import.'));
+        }
+        bk.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,margin:'10px 0 6px',textAlign:'center'}},'\u2014 or paste manually \u2014'));
+        var ita=el('textarea',{class:'input mono',rows:4,placeholder:'Paste your exported data here',style:{resize:'vertical',borderColor:stx.importError?C.rust:C.line}}); ita.value=stx.importText; ita.addEventListener('input',function(e){ stx.importText=e.target.value; stx.importError=false; stx.clipFail=false; }); bk.appendChild(ita);
+        if(stx.importError) bk.appendChild(el('div',{style:{fontSize:'11px',marginTop:'5px',color:C.rust}},"That doesn't look like valid backup data. Check you copied all of it."));
+        bk.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px',padding:'9px',fontSize:'13px'},onClick:function(){ doImport(stx.importText); }},stx.importDone?'\u2713 Imported':'Import pasted text'));
+      }
+    }
+    fillBk(); wrap.appendChild(bk);
+    wrap.appendChild(el('div',{style:{fontSize:'10px',color:C.textFaint,textAlign:'center',marginTop:'18px',letterSpacing:'.04em'}},'v5-dark · build 2026-06-28 · offline'));
+
+    full.appendChild(wrap);
+    return full;
+  }
+
+  function rowKV(k,v,vc,mt){ return el('div',{style:{display:'flex',justifyContent:'space-between',marginTop:mt||'0'}},[ el('div',{style:{fontSize:'13px',color:C.textDim}},k), el('div',{class:'mono',style:{fontSize:'13px',fontWeight:'600',color:vc||C.text}},v) ]); }
+
+  function recurringRow(item){
+    var rkey='rec:'+item.id;
+    var open=!!expanded[rkey];
+    var linkedDebt = item.sourceDebtId ? (data.debts||[]).filter(function(x){return x.id===item.sourceDebtId;})[0] : null;
+    var linkedPot = item.sourcePotId ? (data.pots||[]).filter(function(x){return x.id===item.sourcePotId;})[0] : null;
+    var holder=el('div');
+    var r=el('div',{class:'row-item'});
+    var info=el('button',{style:{flex:'1',minWidth:'0',display:'flex',gap:'10px',alignItems:'center',background:'none',border:'none',textAlign:'left',padding:'0'},onClick:function(){
+      if(item.sourceDebtId){ tab='debts'; stx.moneySub='debts'; modal={type:'editDebt',id:item.sourceDebtId}; render(); return; }
+      if(item.sourcePotId){ tab='debts'; stx.moneySub='savings'; modal={type:'editPot',id:item.sourcePotId}; render(); return; }
+      expanded[rkey]=!open; render();
+    }});
+    info.appendChild(el('span',{class:'dot',style:{background:item.type==='income'?C.green:C.rust}}));
+    var nm=el('div',{style:{minWidth:'0'}});
+    var nameLine=el('div',{class:'trunc',style:{fontSize:'14px',fontWeight:'500',display:'flex',alignItems:'center',gap:'6px'}},[ el('span',{class:'trunc'},item.name) ]);
+    if(linkedDebt) nameLine.appendChild(el('span',{class:'chip',style:{background:C.accentSoft,color:C.accent}},'debt'));
+    if(linkedPot) nameLine.appendChild(el('span',{class:'chip',style:{background:C.greenSoft,color:C.green}},'savings'));
+    nm.appendChild(nameLine);
+    nm.appendChild(el('div',{style:{fontSize:'11px',marginTop:'1px',color:C.textFaint}},recSub(item)));
+    info.appendChild(nm); r.appendChild(info);
+    r.appendChild(el('div',{class:'mono',style:{fontSize:'14px',fontWeight:'600',color:item.type==='income'?C.green:C.text,flexShrink:'0'}},fmt(item.amount,data.currency)));
+    holder.appendChild(r);
+    if(open && !item.sourceDebtId && !item.sourcePotId) holder.appendChild(recurringEditor(item,nm));
+    return holder;
+  }
+  function recSub(item){
+    var cad;
+    if(item.cadence==='weekly'){ var iv=(item.interval&&item.interval>1)?item.interval:1; cad=iv===1?'Weekly · '+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][(item.dayOfWeek||1)-1]:'Every '+iv+' weeks'; }
+    else { var mi=(item.monthInterval&&item.monthInterval>1)?item.monthInterval:1; cad=(mi===1?'Monthly':'Every '+mi+' months')+' · day '+(item.dayOfMonth||1); }
+    var ex=[]; if(item.onCard&&data.card&&data.card.enabled)ex.push('on '+(data.card.name||'Amex'));
+    if(item.startDate){ var sd=parseISO(item.startDate); var t=new Date();t.setHours(0,0,0,0); if(sd>t)ex.push('from '+sd.toLocaleDateString('en-GB',{month:'short',year:'numeric'})); }
+    if(item.endDate)ex.push('ends '+parseISO(item.endDate).toLocaleDateString('en-GB',{month:'short',year:'numeric'}));
+    return cad+(ex.length?' · '+ex.join(' · '):'');
+  }
+
+
+  function recurringEditor(item, subNode){
+    var ed=el('div',{style:{padding:'4px 17px 16px',background:C.surface2,borderTop:'1px solid '+C.lineSoft}});
+    function touch(){ saveQuiet(); if(subNode){ var sl=subNode.lastChild; if(sl)sl.textContent=recSub(item); } }
+    // name + amount
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'12px'}},'Name'));
+    var nm=el('input',{class:'input',value:item.name}); nm.addEventListener('input',function(e){ item.name=e.target.value; saveQuiet(); if(subNode&&subNode.firstChild){ subNode.firstChild.textContent=e.target.value; } }); ed.appendChild(nm);
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Amount'));
+    var am=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:item.amount}); am.addEventListener('input',function(e){ var v=parseFloat(e.target.value); if(!isNaN(v)){ item.amount=v; touch(); } }); ed.appendChild(am);
+    // type
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Type'));
+    var tg=el('div',{class:'seg',style:{marginBottom:'0'}});
+    ['expense','income'].forEach(function(t){ tg.appendChild(el('button',{class:item.type===t?'on':'',onClick:function(){ item.type=t; touch(); render(); }}, t==='expense'?'Expense':'Income')); });
+    ed.appendChild(tg);
+    // cadence
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Repeats'));
+    var cg=el('div',{class:'seg',style:{marginBottom:'0'}});
+    ['monthly','weekly'].forEach(function(cd){ cg.appendChild(el('button',{class:item.cadence===cd?'on':'',onClick:function(){ item.cadence=cd; touch(); render(); }}, cd==='monthly'?'Monthly':'Weekly')); });
+    ed.appendChild(cg);
+
+    var dayWrap=el('div',{style:{marginTop:'10px'}});
+    if(item.cadence==='weekly'){
+      dayWrap.appendChild(el('label',{class:'label'},'Day of week'));
+      var ws=el('select',{class:'input'}); ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(d,i){ var o=el('option',{value:i+1},d); if((item.dayOfWeek||1)===i+1)o.selected=true; ws.appendChild(o); }); ws.addEventListener('change',function(e){ item.dayOfWeek=parseInt(e.target.value,10); touch(); }); dayWrap.appendChild(ws);
+      var fr=el('div',{style:{display:'flex',gap:'8px',alignItems:'center',marginTop:'10px'}});
+      fr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'Every'));
+      var iv=el('input',{class:'input mono',style:{width:'60px',textAlign:'center'},type:'number',inputmode:'numeric',value:(item.interval&&item.interval>0)?item.interval:1});
+      iv.addEventListener('input',function(e){ var raw=e.target.value; if(raw==='')return; var v=parseInt(raw,10); if(v&&v>0){ var was=item.interval; item.interval=v; touch(); if((was>1)!==(v>1))render(); } });
+      iv.addEventListener('blur',function(e){ var v=parseInt(e.target.value,10); if(!v||v<1){ item.interval=1; e.target.value=1; touch(); render(); } });
+      fr.appendChild(iv); fr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'week(s)')); dayWrap.appendChild(fr);
+      if((item.interval||1)>1){
+        dayWrap.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Anchor date'));
+        var an=el('input',{class:'input',type:'date',value:item.anchor||''}); an.addEventListener('change',function(e){ item.anchor=e.target.value; touch(); }); dayWrap.appendChild(an);
+      }
+    } else {
+      dayWrap.appendChild(el('label',{class:'label'},'Day of month'));
+      var ms=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if((item.dayOfMonth||1)===i)o.selected=true; ms.appendChild(o); } ms.addEventListener('change',function(e){ item.dayOfMonth=parseInt(e.target.value,10); touch(); }); dayWrap.appendChild(ms);
+      var mfr=el('div',{style:{display:'flex',gap:'8px',alignItems:'center',marginTop:'10px'}});
+      mfr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'Every'));
+      var mv=el('input',{class:'input mono',style:{width:'60px',textAlign:'center'},type:'number',inputmode:'numeric',value:(item.monthInterval&&item.monthInterval>0)?item.monthInterval:1});
+      mv.addEventListener('input',function(e){ var raw=e.target.value; if(raw==='')return; var v=parseInt(raw,10); if(v&&v>0){ var was=item.monthInterval; item.monthInterval=v; touch(); if((was>1)!==(v>1))render(); } });
+      mv.addEventListener('blur',function(e){ var v=parseInt(e.target.value,10); if(!v||v<1){ item.monthInterval=1; e.target.value=1; touch(); render(); } });
+      mfr.appendChild(mv); mfr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'month(s)')); dayWrap.appendChild(mfr);
+      if((item.monthInterval||1)>1){
+        dayWrap.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Anchor month'));
+        var man=el('input',{class:'input',type:'date',value:item.monthAnchor||''}); man.addEventListener('change',function(e){ item.monthAnchor=e.target.value; touch(); }); dayWrap.appendChild(man);
+      }
+    }
+    ed.appendChild(dayWrap);
+
+    // group
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Group'));
+    var grp=el('input',{class:'input',value:item.group||'',placeholder:'e.g. Housing'}); grp.addEventListener('input',function(e){ item.group=e.target.value; saveQuiet(); }); grp.addEventListener('blur',function(){ render(); }); ed.appendChild(grp);
+
+    // toggles
+    ed.appendChild(rowToggle(item.type==='income'?'Move weekend dates back to Friday':'Move weekend dates to Monday', !!item.rollWeekend, function(v){ item.rollWeekend=v; touch(); }));
+    if(item.type==='expense'){
+      ed.appendChild(rowToggle('Flexible — stays in the forecast until its week ends, even after its day passes', !!item.flexible, function(v){ item.flexible=v; touch(); }));
+    }
+    if(data.card&&data.card.enabled&&item.type==='expense'){
+      ed.appendChild(rowToggle('Pays via '+(data.card.name||'Amex'), !!item.onCard, function(v){ item.onCard=v; touch(); }));
+    }
+
+    // start / end
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'12px'}},'Starts on (optional)'));
+    var sr=el('div',{style:{display:'flex',gap:'8px'}});
+    var si=el('input',{class:'input',style:{flex:'1'},type:'date',value:item.startDate||''}); si.addEventListener('change',function(e){ item.startDate=e.target.value||undefined; touch(); }); sr.appendChild(si);
+    sr.appendChild(el('button',{class:'pill-btn',onClick:function(){ item.startDate=undefined; si.value=''; touch(); }},'Clear')); ed.appendChild(sr);
+    ed.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Ends on (optional)'));
+    var er=el('div',{style:{display:'flex',gap:'8px'}});
+    var ei=el('input',{class:'input',style:{flex:'1'},type:'date',value:item.endDate||''}); ei.addEventListener('change',function(e){ item.endDate=e.target.value||undefined; touch(); }); er.appendChild(ei);
+    er.appendChild(el('button',{class:'pill-btn',onClick:function(){ item.endDate=undefined; ei.value=''; touch(); }},'Clear')); ed.appendChild(er);
+
+    // delete
+    ed.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'16px',color:C.rust},onClick:function(){ data.recurring=data.recurring.filter(function(r){return r.id!==item.id;}); commit(); }},'Delete this item'));
+    return ed;
+  }
+
+  function addRecurringCard(){
+    var open=!!expanded['__add'];
+    var holder=el('div',{style:{marginTop:'10px'}});
+    var btn=el('button',{class:'btn btn-ghost',onClick:function(){ expanded['__add']=!open; render(); }});
+    btn.appendChild(svg(ICON3.plus,16,C.accent)); btn.appendChild(document.createTextNode(open?'Close':'Add recurring item'));
+    holder.appendChild(btn);
+    if(open){
+      var nw=stx.nw;
+      var card=el('div',{class:'grp',style:{marginTop:'10px',padding:'16px 17px'}});
+      card.appendChild(el('label',{class:'label'},'Name'));
+      var nm=el('input',{class:'input',value:nw.name,placeholder:'What is it?'}); nm.addEventListener('input',function(e){ nw.name=e.target.value; }); card.appendChild(nm);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Amount'));
+      var am=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:nw.amount,placeholder:'0'}); am.addEventListener('input',function(e){ nw.amount=e.target.value; }); card.appendChild(am);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Type'));
+      var tg=el('div',{class:'seg',style:{marginBottom:'0'}}); ['expense','income'].forEach(function(t){ tg.appendChild(el('button',{class:nw.type===t?'on':'',onClick:function(){ nw.type=t; render(); }},t==='expense'?'Expense':'Income')); }); card.appendChild(tg);
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Repeats'));
+      var cg=el('div',{class:'seg',style:{marginBottom:'0'}}); ['monthly','weekly'].forEach(function(cd){ cg.appendChild(el('button',{class:nw.cadence===cd?'on':'',onClick:function(){ nw.cadence=cd; render(); }},cd==='monthly'?'Monthly':'Weekly')); }); card.appendChild(cg);
+      if(nw.cadence==='weekly'){
+        card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Day of week'));
+        var ws=el('select',{class:'input'}); ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(d,i){ var o=el('option',{value:i+1},d); if(nw.dayOfWeek===i+1)o.selected=true; ws.appendChild(o); }); ws.addEventListener('change',function(e){ nw.dayOfWeek=parseInt(e.target.value,10); }); card.appendChild(ws);
+        var fr=el('div',{style:{display:'flex',gap:'8px',alignItems:'center',marginTop:'10px'}});
+        fr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'Every'));
+        var iv=el('input',{class:'input mono',style:{width:'60px',textAlign:'center'},type:'number',inputmode:'numeric',value:nw.interval||1});
+        iv.addEventListener('input',function(e){ var raw=e.target.value; if(raw==='')return; var v=parseInt(raw,10); if(v&&v>0){ var was=nw.interval; nw.interval=v; if((was>1)!==(v>1))render(); } });
+        iv.addEventListener('blur',function(e){ var v=parseInt(e.target.value,10); if(!v||v<1){ nw.interval=1; render(); } });
+        fr.appendChild(iv); fr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'week(s)')); card.appendChild(fr);
+        if((nw.interval||1)>1){
+          card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Anchor date'));
+          var an=el('input',{class:'input',type:'date',value:nw.anchor||''}); an.addEventListener('change',function(e){ nw.anchor=e.target.value; }); card.appendChild(an);
+        }
+      } else {
+        card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Day of month'));
+        var ds=el('select',{class:'input'}); for(var i=1;i<=28;i++){ var o=el('option',{value:i},'Day '+i); if(nw.dayOfMonth===i)o.selected=true; ds.appendChild(o); } ds.addEventListener('change',function(e){ nw.dayOfMonth=parseInt(e.target.value,10); }); card.appendChild(ds);
+        var mfr=el('div',{style:{display:'flex',gap:'8px',alignItems:'center',marginTop:'10px'}});
+        mfr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'Every'));
+        var mv=el('input',{class:'input mono',style:{width:'60px',textAlign:'center'},type:'number',inputmode:'numeric',value:nw.monthInterval||1});
+        mv.addEventListener('input',function(e){ var raw=e.target.value; if(raw==='')return; var v=parseInt(raw,10); if(v&&v>0){ var was=nw.monthInterval; nw.monthInterval=v; if((was>1)!==(v>1))render(); } });
+        mv.addEventListener('blur',function(e){ var v=parseInt(e.target.value,10); if(!v||v<1){ nw.monthInterval=1; render(); } });
+        mfr.appendChild(mv); mfr.appendChild(el('span',{style:{fontSize:'13px',color:C.textDim}},'month(s)')); card.appendChild(mfr);
+        if((nw.monthInterval||1)>1){
+          card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Anchor month'));
+          var man=el('input',{class:'input',type:'date',value:nw.monthAnchor||''}); man.addEventListener('change',function(e){ nw.monthAnchor=e.target.value; }); card.appendChild(man);
+        }
+      }
+      card.appendChild(el('label',{class:'label',style:{marginTop:'10px'}},'Group (optional)'));
+      var grp=el('input',{class:'input',value:nw.group,placeholder:'e.g. Housing'}); grp.addEventListener('input',function(e){ nw.group=e.target.value; }); card.appendChild(grp);
+      if(data.card&&data.card.enabled&&nw.type==='expense'){
+        card.appendChild(rowToggle('Pays via '+(data.card.name||'Amex'), !!nw.onCard, function(v){ nw.onCard=v; }));
+      }
+      card.appendChild(el('label',{class:'label',style:{marginTop:'12px'}},'Ends on (optional)'));
+      var ce=el('input',{class:'input',type:'date',value:nw.endDate||''}); ce.addEventListener('change',function(e){ nw.endDate=e.target.value; }); card.appendChild(ce);
+      card.appendChild(el('button',{class:'btn btn-accent',style:{marginTop:'14px'},onClick:function(){
+        var amt=parseFloat(nw.amount); if(!nw.name.trim()||!amt)return;
+        var maxOrder=data.recurring.reduce(function(m,r){return Math.max(m,r.order||0);},0);
+        var it={name:nw.name.trim(),type:nw.type,amount:amt,cadence:nw.cadence,dayOfMonth:nw.dayOfMonth,dayOfWeek:nw.dayOfWeek,group:(nw.group||'').trim(),order:maxOrder+1,id:genId(),active:true};
+        if(nw.cadence==='weekly'){ it.interval=nw.interval||1; if(it.interval>1&&nw.anchor)it.anchor=nw.anchor; }
+        else { it.monthInterval=nw.monthInterval||1; if(it.monthInterval>1&&nw.monthAnchor)it.monthAnchor=nw.monthAnchor; }
+        if(nw.onCard&&nw.type==='expense') it.onCard=true;
+        if(nw.endDate) it.endDate=nw.endDate;
+        data.recurring.push(it); stx.nw=newItemBlank(); expanded['__add']=false; commit();
+      }},'Add item'));
+      holder.appendChild(card);
+    }
+    return holder;
+  }
+
+  // ---------- boot ----------
+  try { render(); }
+  catch(e){ root.innerHTML='<div style="padding:24px;font-family:sans-serif;color:#1F2421"><b>Something went wrong loading the app.</b><br><br>'+(e&&e.message?e.message:e)+'</div>'; }
+
+})();
+
+</script>
+<script>
+  // Register the service worker so the app works offline once visited online.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function (e) {
+        // Registration can fail when opened as a file:// URL — that's fine, app still runs.
+        console.log('SW registration skipped:', e && e.message);
+      });
+    });
+  }
+</script>
+</body>
+</html>
