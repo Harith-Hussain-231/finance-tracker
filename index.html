@@ -62,7 +62,7 @@
   .btn-ghost { background:var(--surface2); color:var(--text); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; gap:8px; }
   .btn-line { background:transparent; color:var(--textDim); border:1px solid var(--line); }
 
-  .input { width:100%; box-sizing:border-box; -webkit-appearance:none; appearance:none; min-height:46px; border:1px solid var(--line); border-radius:var(--r-inner); padding:12px 13px; font-size:15px; background:var(--surface2); color:var(--text); font-family:inherit; }
+  .input { width:100%; box-sizing:border-box; -webkit-appearance:none; appearance:none; min-height:46px; border:1px solid #3A3A3A; border-radius:var(--r-inner); padding:12px 13px; font-size:15px; background:#1C1C1C; color:var(--text); font-family:inherit; }
   .input[type="date"] { min-height:46px; line-height:1.2; }
   .input::placeholder { color:var(--textFaint); }
   .label { font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--textDim); margin-bottom:5px; display:block; font-weight:600; }
@@ -70,10 +70,18 @@
   .chip { padding:3px 9px; border-radius:var(--r-pill); font-size:11px; font-weight:600; flex-shrink:0; background:var(--amberSoft); color:var(--amber); white-space:nowrap; }
   .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
 
+  /* frosted blur strip at top — iOS-style: only active once scrolled (off at the very top) */
+  #topfade { position:fixed; top:0; left:0; right:0; height:calc(64px + env(safe-area-inset-top)); z-index:35; pointer-events:none;
+    opacity:0; transition:opacity .22s ease;
+    background:linear-gradient(to bottom, var(--bg) 0%, rgba(20,20,20,0.62) 42%, rgba(20,20,20,0.22) 72%, rgba(20,20,20,0) 100%);
+    -webkit-mask-image:linear-gradient(to bottom, #000 0%, #000 38%, rgba(0,0,0,0.4) 78%, transparent 100%);
+    mask-image:linear-gradient(to bottom, #000 0%, #000 38%, rgba(0,0,0,0.4) 78%, transparent 100%); }
+  #topfade.scrolled { opacity:1; backdrop-filter:blur(22px) saturate(1.6); -webkit-backdrop-filter:blur(22px) saturate(1.6); }
+
   .tabbar { position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; justify-content:center;
-    padding-bottom:env(safe-area-inset-bottom); background:rgba(20,20,20,.86); backdrop-filter:blur(20px) saturate(1.4); -webkit-backdrop-filter:blur(20px) saturate(1.4); border-top:1px solid var(--line); }
+    padding-bottom:calc(env(safe-area-inset-bottom) * 0.45); background:rgba(20,20,20,.86); backdrop-filter:blur(20px) saturate(1.4); -webkit-backdrop-filter:blur(20px) saturate(1.4); border-top:1px solid var(--line); }
   .tabbar-inner { display:flex; width:100%; max-width:480px; }
-  .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 9px; background:none; border:none; color:var(--textFaint); transition:color .15s; }
+  .tab { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:11px 0 7px; background:none; border:none; color:var(--textFaint); transition:color .15s; }
   .tab.on { color:var(--text); }
   .tab span { font-size:10px; font-weight:600; letter-spacing:.03em; }
 
@@ -94,6 +102,7 @@
 </head>
 <body>
 <div id="root"></div>
+<div id="topfade" aria-hidden="true"></div>
 <script>
 "use strict";
 
@@ -1534,62 +1543,11 @@
       cfg.appendChild(el('div',{style:{fontSize:'11px',marginTop:'10px',color:C.textFaint,lineHeight:'1.4'}},'Runs day '+ss+' → day '+closeDay+' next month, paid '+whenTxt+'. The payment month is worked out automatically from the two days above.'));
       wrap.appendChild(cfg);
 
-      // ── "Your Amex right now" — read-only summary; edit via Check-in ──
+      // ── Amex figures now live entirely in the Statements list below ──
       var roles0=currentAndNextCycleKeys(card, todayMidnight());
       var nextPay=nextCardPaymentOnOrAfter(card, todayMidnight());
       var payTxt=nextPay?nextPay.toLocaleDateString('en-GB',{day:'numeric',month:'long'}):'—';
       var totalBal=(roles0.nextKey&&card.manual&&card.manual[roles0.nextKey])||0;
-      var nextCyc2 = roles0.nextKey ? cycleFor(parseISO(roles0.nextKey),ss) : null;
-      var nextPayDate2 = nextCyc2 ? cardPaymentDate(nextCyc2.closeY, nextCyc2.closeM, card.paymentDay||19, (card.rollWeekend!==false?'mon':false), nextCyc2.end.getDate()) : null;
-      var nextPayTxt2 = nextPayDate2 ? nextPayDate2.toLocaleDateString('en-GB',{day:'numeric',month:'long'}) : '—';
-
-      var ob=el('div',{class:'grp',style:{marginBottom:'16px',padding:'16px 17px'}});
-      var obHead=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'3px'}});
-      obHead.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'700'}},'Your '+(card.name||'Amex')+' right now'));
-      // secondary-tap edit -> opens the Check-in sheet (canonical entry point)
-      var editBtn=el('button',{style:{display:'flex',alignItems:'center',gap:'5px',background:'none',border:'none',color:C.accent,fontSize:'12px',fontWeight:'600',padding:'2px 0'},onClick:function(){ modal={type:'checkin'}; stx.ciShowTotal=(totalBal>0); render(); }});
-      editBtn.appendChild(svg(ICON3.edit||'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',13,C.accent));
-      editBtn.appendChild(document.createTextNode('Update'));
-      obHead.appendChild(editBtn);
-      ob.appendChild(obHead);
-      ob.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'14px',lineHeight:'1.4'}},'Updated from Check-in. Tap Update to change these figures.'));
-
-      // Read-only: Balance due
-      ob.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'4px 0'}},[
-        el('div',{style:{minWidth:'0'}},[
-          el('div',{style:{fontSize:'13px',fontWeight:'600'}},'Balance due'),
-          el('div',{style:{fontSize:'10px',marginTop:'1px',color:C.textFaint}},'Pays '+payTxt)
-        ]),
-        el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'700',color:(card.openingAmount>0?C.amber:C.textFaint)}}, card.openingAmount>0?fmt(card.openingAmount,data.currency):'—')
-      ]));
-
-      // Read-only: Total balance (only if entered)
-      if(totalBal>0){
-        ob.appendChild(el('div',{style:{borderTop:'1px solid '+C.lineSoft,margin:'10px 0'}}));
-        ob.appendChild(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'4px 0'}},[
-          el('div',{style:{minWidth:'0'}},[
-            el('div',{style:{fontSize:'13px',fontWeight:'600'}},'Total balance'),
-            el('div',{style:{fontSize:'10px',marginTop:'1px',color:C.textFaint}},'Everything on the card today')
-          ]),
-          el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'700',color:C.amber}}, fmt(totalBal,data.currency))
-        ]));
-      }
-
-      // Plain-English result line
-      if(card.openingAmount>0 || totalBal>0){
-        var res=el('div',{style:{marginTop:'14px',padding:'11px 13px',borderRadius:'12px',background:C.surface2,fontSize:'11px',color:C.textDim,lineHeight:'1.5'}});
-        var parts=[];
-        if(card.openingAmount>0) parts.push('You\u2019ll pay '+fmt(card.openingAmount,data.currency)+' on '+payTxt+'.');
-        if(totalBal>0){
-          var carry=Math.max(0,totalBal-(card.openingAmount||0));
-          parts.push(carry>0 ? (fmt(carry,data.currency)+' of new spending has started next month\u2019s bill (due '+nextPayTxt2+').') : ('Nothing new on next month\u2019s bill yet (due '+nextPayTxt2+').'));
-        }
-        res.appendChild(el('div',null,parts.join(' ')));
-        ob.appendChild(res);
-      } else {
-        ob.appendChild(el('div',{style:{marginTop:'12px',fontSize:'11px',color:C.textFaint,lineHeight:'1.4'}},'No figures yet \u2014 tap Update to enter your balance due.'));
-      }
-      wrap.appendChild(ob);
 
       // statements
       wrap.appendChild(el('div',{class:'eyebrow',style:{marginBottom:'9px',paddingLeft:'3px'}},'Statements'));
@@ -1640,9 +1598,12 @@
           var gh=el('button',{class:'grp-head',onClick:function(){ stx.cardExpanded[c.key]=!cOpen; render(); }});
           var gl=el('div',{style:{minWidth:'0'}});
           gl.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'600'}},c.start.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+c.end.toLocaleDateString('en-GB',{day:'numeric',month:'short'})));
-          gl.appendChild(el('div',{style:{fontSize:'11px',marginTop:'2px',color:C.textDim}},'Pays '+pay.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+(isNext?' · next':'')));
           gh.appendChild(gl);
-          gh.appendChild(el('div',{class:'mono',style:{fontSize:'16px',fontWeight:'600',color:total>0?C.text:C.textFaint}},fmt(total,data.currency)));
+          var gr=el('div',{style:{textAlign:'right',flexShrink:'0'}});
+          var payDateTxt=pay.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+          gr.appendChild(el('div',{style:{fontSize:'10px',color:isCurrent?C.amber:C.textFaint,marginBottom:'2px',fontWeight:isCurrent?'600':'400'}}, isCurrent?('Balance due · '+payDateTxt):payDateTxt));
+          gr.appendChild(el('div',{class:'mono',style:{fontSize:'16px',fontWeight:isCurrent?'700':'600',color:isCurrent?C.amber:(total>0?C.text:C.textFaint)}},fmt(total,data.currency)));
+          gh.appendChild(gr);
           g.appendChild(gh);
           if(cOpen){
             var lines=(breakdownByCycle[c.key]||[]).slice().sort(function(x,y){return x.date<y.date?-1:(x.date>y.date?1:0);});
@@ -2245,7 +2206,7 @@
 
 
   function recurringEditor(item, subNode){
-    var ed=el('div',{style:{padding:'4px 17px 16px',background:C.surface2,borderTop:'1px solid '+C.lineSoft}});
+    var ed=el('div',{style:{padding:'6px 17px 18px',background:C.surface2,borderTop:'1px solid '+C.line,boxShadow:'inset 0 6px 10px -8px rgba(0,0,0,.5)'}});
     function touch(){ saveQuiet(); if(subNode){ var sl=subNode.lastChild; if(sl)sl.textContent=recSub(item); } }
     // name + amount
     ed.appendChild(el('label',{class:'label',style:{marginTop:'12px'}},'Name'));
@@ -2396,6 +2357,25 @@
 </script>
 <script>
   // Register the service worker so the app works offline once visited online.
+  // Top frost: show only once content is scrolled (off at the very top), iOS-style.
+  (function(){
+    var fade=document.getElementById('topfade');
+    if(!fade) return;
+    var THRESH=6;
+    function update(){
+      // window scroll (normal screens) OR an internal .full scroller (snapshot)
+      var ws = window.pageYOffset || document.documentElement.scrollTop || 0;
+      var fullEl = document.querySelector('.full');
+      var fs = fullEl ? fullEl.scrollTop : 0;
+      var scrolled = (ws>THRESH) || (fs>THRESH);
+      if(scrolled) fade.classList.add('scrolled'); else fade.classList.remove('scrolled');
+    }
+    window.addEventListener('scroll', update, {passive:true});
+    // catch internal scrollers too (delegated, capture phase)
+    document.addEventListener('scroll', update, {passive:true, capture:true});
+    update();
+  })();
+
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('sw.js').catch(function (e) {
