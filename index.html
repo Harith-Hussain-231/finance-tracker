@@ -389,41 +389,48 @@
   }
   function debtSchedule(debt){
     // ───────────────────────────────────────────────────────────────────────────
-    // FUTURE FEATURE (logged 2026-06-28) — "Option B": recalculating amortisation.
-    // CURRENT behaviour: a debt is a FIXED plan = ceil(original/payment) equal
-    // payments, last one trued-up. Per-payment overrides change only THAT row; they
-    // do NOT ripple forward. So overpaying a month makes the total exceed `original`
-    // and the payoff date does NOT move earlier. This is correct for fixed payments
-    // (how it's used today) but wrong if the user deviates.
-    // WANTED later: when any payment is overridden, re-derive the REMAINING schedule
-    // from "balance still owed" so overpayments shorten the loan / move payoff earlier,
-    // underpayments extend it, and `remaining`/progress stay accurate. Touch points:
-    //   - this function (rebuild tail from running remaining, not fixed payment*N)
-    //   - syncDebtExpense() endDate (payoff shifts when schedule shortens)
-    //   - the Money tab progress bar + "Clears <month>" line read from sch.payoff
-    // Keep the fixed-plan path as the default; amortisation is opt-in per debt.
+    // Recalculating amortisation (built 2026-06-28). The schedule walks forward
+    // tracking the REMAINING balance: each period subtracts that period's payment
+    // (an override amount if present, else the standard payment, clamped so the final
+    // payment never exceeds what's left). The loan ends the period the balance hits 0.
+    //   • Overpay a month  → balance drops faster → loan CLEARS EARLIER (fewer rows,
+    //     payoff date moves up), future payments stay at the set amount.
+    //   • Underpay a month → balance drops slower → schedule EXTENDS (more rows).
+    // The fixed-payment case (no overrides, payment divides evenly) produces exactly
+    // the same result as before, so nothing changes for normal use.
     // ───────────────────────────────────────────────────────────────────────────
     var payment = debt.payment>0 ? debt.payment : 0;
     var original = debt.original>0 ? debt.original : 0;
     var today = todayMidnight();
-    var n = (payment>0) ? Math.ceil(original/payment) : 0;
-    if(n>600) n=600; // safety cap
     var rows=[]; var paidTotal=0;
-    for(var i=0;i<n;i++){
+    var remaining = original;          // running balance still owed
+    var MAXROWS = 600;                 // safety cap (matches old behaviour)
+    for(var i=0; i<MAXROWS && remaining>0.004; i++){
       var ov=debtOverride(debt, i);
       var dt = (ov&&ov.date) ? parseISO(ov.date) : debtPeriodDate(debt, i);
-      var defAmt = (i===n-1) ? Math.max(0, Math.round((original-(payment*(n-1)))*100)/100) : payment;
-      var amt = (ov&&ov.amount!==undefined) ? ov.amount : defAmt;
+      // Standard payment for this period (override wins if set), then clamp to the
+      // remaining balance so we never pay more than is owed on the final period.
+      var hasOvAmt = !!(ov && ov.amount!==undefined);
+      var want = hasOvAmt ? ov.amount : payment;
+      if(want<0) want=0;
+      var amt = Math.min(want, Math.round(remaining*100)/100);
+      amt = Math.round(amt*100)/100;
+      // Termination guard: only STOP if there's no way to make progress — i.e. the
+      // standard payment itself is 0/unset (not just this one period overridden to 0).
+      // A user skipping a single month (override 0) must NOT end the loan; it just
+      // adds a £0 row and the balance carries to the next period.
+      if(amt<=0 && !hasOvAmt){ break; }          // payment structurally unset → stop
+      if(amt<=0 && hasOvAmt){                      // legit skipped month → record, carry on
+        var paidS = dt<=today;
+        rows.push({ index:i, date:isoDate(dt), amount:0, paid:paidS, overridden:true });
+        continue;
+      }
+      remaining = Math.round((remaining - amt)*100)/100;
       var paid = dt<=today;
-      if(paid) paidTotal+=amt;
+      if(paid) paidTotal += amt;
       rows.push({ index:i, date:isoDate(dt), amount:amt, paid:paid, overridden:!!ov });
     }
     var paidRemaining = Math.max(0, Math.round((original-paidTotal)*100)/100);
-    // Defensive: drop a spurious trailing £0 payment (can arise from rounding when
-    // payment divides original almost exactly), so the schedule never shows an empty final row.
-    while(rows.length>1 && rows[rows.length-1].amount<=0 && !rows[rows.length-1].overridden){
-      rows.pop();
-    }
     var payoff = rows.length ? rows[rows.length-1].date : null;
     return { rows:rows, original:original, paidTotal:Math.round(paidTotal*100)/100, remaining:paidRemaining, payoff:payoff };
   }
@@ -474,9 +481,16 @@
         data.skips[item.id+'|'+schedDate]='debt';
         data.oneOffs.push({ id:genId(), sourceDebtId:debt.id, date:ov.date, name:(debt.name||'Debt'), type:'expense', amount:(ov.amount!==undefined?ov.amount:(debt.payment||0)), onCard:!!debt.onCard });
       } else if(ov.amount!==undefined){
-        // amount-only change on the natural date
-        data.overrides[item.id+'|'+schedDate]=ov.amount;
-        data._debtOvKeys[item.id+'|'+schedDate]=true;
+        if(ov.amount<=0){
+          // Skipped month (£0): suppress the forecast occurrence entirely rather than
+          // emitting a confusing £0 line. The debt schedule still carries the balance
+          // forward (extending the loan); the forecast simply shows nothing that month.
+          data.skips[item.id+'|'+schedDate]='debt';
+        } else {
+          // amount-only change on the natural date
+          data.overrides[item.id+'|'+schedDate]=ov.amount;
+          data._debtOvKeys[item.id+'|'+schedDate]=true;
+        }
       }
     });
   }
