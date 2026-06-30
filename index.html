@@ -106,6 +106,10 @@
 <script>
 "use strict";
 
+// Shown in the Manage-tab footer so you can SEE at a glance which version is live after a
+// deploy. IMPORTANT: keep this in sync with CACHE_VERSION in sw.js — bump both together.
+var APP_VERSION = 'v23';
+
 (function () {
 
   // ---------- constants ----------
@@ -2242,7 +2246,7 @@
       }
     }
     fillBk(); wrap.appendChild(bk);
-    wrap.appendChild(el('div',{style:{fontSize:'10px',color:C.textFaint,textAlign:'center',marginTop:'18px',letterSpacing:'.04em'}},'v5-dark · build 2026-06-28 · offline'));
+    wrap.appendChild(el('div',{style:{fontSize:'10px',color:C.textFaint,textAlign:'center',marginTop:'18px',letterSpacing:'.04em'}},APP_VERSION));
 
     full.appendChild(wrap);
     return full;
