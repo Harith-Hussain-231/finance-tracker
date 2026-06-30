@@ -1365,7 +1365,7 @@
         if(item.sourceDebtId){ tab='debts'; stx.moneySub='debts'; modal={type:'editDebt',id:item.sourceDebtId}; render(); return; }
         if(item.sourcePotId){ tab='debts'; stx.moneySub='savings'; modal={type:'editPot',id:item.sourcePotId}; render(); return; }
         if(item.recurring){ modal={type:'occ',key:item.id,recurringId:item.recurringId,name:item.name,date:item.date,amount:String(item.amount)}; }
-        else { modal={type:'editOneoff',id:item.id,name:item.name,amount:String(item.amount),ttype:item.type,date:item.date}; }
+        else { modal={type:'editOneoff',id:item.id,name:item.name,amount:String(item.amount),ttype:item.type,date:item.date,onCard:!!item.onCard}; }
         render();
       }});
     info.appendChild(el('span',{class:'dot',style:{background:item.isCard?C.amber:(item.sourceDebtId?C.accent:(item.sourcePotId?C.green:(item.type==='income'?C.green:C.rust)))}}));
@@ -1480,13 +1480,22 @@
     sh.appendChild(el('label',{class:'label'},'Date'));
     var dt=el('input',{class:'input',style:{marginBottom:'12px'},type:'date',value:modal.date}); dt.addEventListener('change',function(e){ if(e.target.value)modal.date=e.target.value; }); sh.appendChild(dt);
     sh.appendChild(el('label',{class:'label'},'Amount'));
-    var am=el('input',{class:'input mono',style:{marginBottom:'18px'},type:'number',inputmode:'decimal',value:modal.amount,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
+    var am=el('input',{class:'input mono',style:{marginBottom:'14px'},type:'number',inputmode:'decimal',value:modal.amount,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
+    // Pays via Amex — only meaningful for expenses (income can't be "on the card")
+    if(modal.ttype==='expense' && data.card && data.card.enabled){
+      if(modal.onCard===undefined) modal.onCard=false;
+      sh.appendChild(rowToggle('Pays via '+(data.card.name||'Amex'), !!modal.onCard, function(v){ modal.onCard=v; }));
+      sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginTop:'6px',marginBottom:'16px',lineHeight:'1.4'}},'Folds into the statement it falls in, paid as one bill \u2014 it won\u2019t show as a separate line in the forecast.'));
+    } else {
+      sh.appendChild(el('div',{style:{marginBottom:'4px'}}));
+    }
     sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){
       var a=parseFloat(modal.amount); if(!a||a<=0)return;
+      var onCard = (modal.ttype==='expense') ? !!modal.onCard : false;
       if(editing){
-        (data.oneOffs||[]).forEach(function(o){ if(o.id===modal.id){ o.name=(modal.name||'').trim()||o.name; o.amount=a; o.type=modal.ttype; o.date=modal.date; } });
+        (data.oneOffs||[]).forEach(function(o){ if(o.id===modal.id){ o.name=(modal.name||'').trim()||o.name; o.amount=a; o.type=modal.ttype; o.date=modal.date; o.onCard=onCard; } });
       } else {
-        data.oneOffs=data.oneOffs||[]; data.oneOffs.push({id:genId(),date:modal.date,name:(modal.name||'').trim()||(modal.ttype==='income'?'Income':'Expense'),type:modal.ttype,amount:a});
+        data.oneOffs=data.oneOffs||[]; data.oneOffs.push({id:genId(),date:modal.date,name:(modal.name||'').trim()||(modal.ttype==='income'?'Income':'Expense'),type:modal.ttype,amount:a,onCard:onCard});
       }
       modal=null; commit();
     }},editing?'Save changes':'Add transaction'));
@@ -1508,8 +1517,27 @@
     sh.appendChild(el('div',{style:{fontSize:'12px',color:C.textDim,marginBottom:'16px'}},'Just this occurrence · '+dayLabel(modal.date)));
     sh.appendChild(el('label',{class:'label'},'Amount this time'));
     var ov=(data.overrides&&data.overrides[key]!==undefined&&data.overrides[key]!==null)?data.overrides[key]:(rec?rec.amount:modal.amount);
-    var am=el('input',{class:'input mono',style:{marginBottom:'14px'},type:'number',inputmode:'decimal',value:ov,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
-    sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){ var a=parseFloat(modal.amount); if(isNaN(a))return; if(!data.overrides)data.overrides={}; data.overrides[key]=a; modal=null; commit(); }},'Save this occurrence'));
+    if(modal.amount===undefined) modal.amount=ov;
+    var am=el('input',{class:'input mono',style:{marginBottom:'12px'},type:'number',inputmode:'decimal',value:ov,placeholder:'0'}); am.addEventListener('input',function(e){ modal.amount=e.target.value; }); sh.appendChild(am);
+    // Date for just this occurrence — defaults to its scheduled date; changing it MOVES only this instance.
+    sh.appendChild(el('label',{class:'label'},'Date this time'));
+    if(modal.newDate===undefined) modal.newDate=modal.date;
+    var od=el('input',{class:'input',style:{marginBottom:'14px'},type:'date',value:modal.newDate}); od.addEventListener('change',function(e){ if(e.target.value)modal.newDate=e.target.value; }); sh.appendChild(od);
+    sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){
+      var a=parseFloat(modal.amount); if(isNaN(a))return;
+      var moved = modal.newDate && modal.newDate!==modal.date;
+      if(moved){
+        // Move just this instance: suppress the original occurrence, then emit a one-off at the
+        // new date carrying this amount and inheriting the series' Amex flag. Mirrors how debt
+        // date-overrides work. The series itself is untouched.
+        data.skips[key]=true;
+        data.oneOffs=data.oneOffs||[];
+        data.oneOffs.push({ id:genId(), date:modal.newDate, name:(rec?rec.name:modal.name), type:(rec?rec.type:'expense'), amount:a, onCard:(rec?!!rec.onCard:false), _movedFrom:key });
+      } else {
+        if(!data.overrides)data.overrides={}; data.overrides[key]=a;
+      }
+      modal=null; commit();
+    }},'Save this occurrence'));
     if(data.overrides&&data.overrides[key]!==undefined){
       sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ delete data.overrides[key]; modal=null; commit(); }},'Reset to usual amount'));
     }
@@ -1630,10 +1658,13 @@
               var canConsume = (c.key===roles.currentKey) && !passed && !it.covered && it.okey;
               var consumedAmt = (card.consumed && it.okey && card.consumed[it.okey]>0) ? Math.min(card.consumed[it.okey], it.sum) : 0;
               var subText;
-              if(it.covered) subText = dayLabel(it.date);
-              else if(consumedAmt>0 && consumedAmt>=it.sum) subText = dayLabel(it.date)+' · all spent';
-              else if(consumedAmt>0) subText = dayLabel(it.date)+' · '+fmt(consumedAmt,data.currency)+' spent · '+fmt(it.sum-consumedAmt,data.currency)+' to come';
-              else subText = dayLabel(it.date);
+              // Amex breakdown rows show the full "13 Jul" date (the forecast's weekday+day
+              // label reads as confusing here without a month).
+              function amexDate(s){ return parseISO(s).toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+              if(it.covered) subText = amexDate(it.date);
+              else if(consumedAmt>0 && consumedAmt>=it.sum) subText = amexDate(it.date)+' · all spent';
+              else if(consumedAmt>0) subText = amexDate(it.date)+' · '+fmt(consumedAmt,data.currency)+' spent · '+fmt(it.sum-consumedAmt,data.currency)+' to come';
+              else subText = amexDate(it.date);
               var fullyConsumed = consumedAmt>0 && consumedAmt>=it.sum;
               var nameCell = el('div',{style:{minWidth:'0'}},[
                 el('div',{class:'trunc',style:{fontSize:'13px',color:(it.covered||fullyConsumed)?C.textFaint:C.text}}, it.name+(it.covered?' · in manual':'')),
@@ -1688,13 +1719,20 @@
                 g.appendChild(el('div',{style:{padding:'10px 17px',fontSize:'11px',color:C.textFaint,borderTop:'1px solid '+C.lineSoft,lineHeight:'1.4'}},'Add your total card balance at the top to set this statement\u2019s starting point.'));
               }
             } else {
-              var mwrap=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'10px 17px',borderTop:'1px solid '+C.lineSoft}});
-              mwrap.appendChild(el('div',{style:{fontSize:'13px',color:C.textDim,minWidth:'0'}},'Manual spend'));
-              var mi=el('input',{class:'input mono',style:{width:'110px',padding:'7px 9px',textAlign:'right',flexShrink:'0'},type:'number',inputmode:'decimal',value:man||'',placeholder:'0'});
-              mi.addEventListener('input',function(e){ if(!card.manual)card.manual={}; var v=parseFloat(e.target.value); if(v>0)card.manual[c.key]=v; else delete card.manual[c.key]; saveQuiet(); gh.lastChild.textContent=fmt((flaggedByCycle[c.key]||0)+(card.manual[c.key]||0),data.currency); });
-              mwrap.appendChild(mi);
-              g.appendChild(mwrap);
+              // (Manual spend field removed — purchases are added via "Add purchase" below.)
             }
+          }
+          if(cOpen){
+            // Add a one-off purchase into THIS statement cycle (folds into the bill, like other on-card spend)
+            var addBtn=el('button',{style:{width:'100%',display:'flex',alignItems:'center',gap:'7px',justifyContent:'center',padding:'10px 17px',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',color:C.accent,fontSize:'12px',fontWeight:'600'},onClick:(function(cyc){ return function(){
+              // default the new purchase to today if today is inside the cycle, else the cycle's start
+              var def = (today>=cyc.start && today<=cyc.end) ? isoDate(today) : isoDate(cyc.start);
+              modal={type:'oneoff', name:'', amount:'', ttype:'expense', date:def, onCard:true, cycleStart:isoDate(cyc.start), cycleEnd:isoDate(cyc.end)};
+              render();
+            }; })(c)});
+            addBtn.appendChild(svg(ICON3.plus,14,C.accent));
+            addBtn.appendChild(document.createTextNode('Add purchase'));
+            g.appendChild(addBtn);
           }
           wrap.appendChild(g);
         })(loopC);

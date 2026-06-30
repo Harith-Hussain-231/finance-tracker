@@ -1,6 +1,6 @@
 /* wc-planner service worker — makes the app work offline.
    Bump CACHE_VERSION whenever you deploy a new index.html so phones pick up the update. */
-const CACHE_VERSION = 'wc-planner-v15';
+const CACHE_VERSION = 'wc-planner-v17';
 const ASSETS = [
   './',
   './index.html',
