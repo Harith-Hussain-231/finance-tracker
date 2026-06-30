@@ -1523,16 +1523,28 @@
     sh.appendChild(el('label',{class:'label'},'Date this time'));
     if(modal.newDate===undefined) modal.newDate=modal.date;
     var od=el('input',{class:'input',style:{marginBottom:'14px'},type:'date',value:modal.newDate}); od.addEventListener('change',function(e){ if(e.target.value)modal.newDate=e.target.value; }); sh.appendChild(od);
+    // Pays via Amex — shown for on-card occurrences. Unticking moves THIS instance into the
+    // forecast (off the card) instead of folding into the statement.
+    var seriesOnCard = rec ? !!rec.onCard : false;
+    var isExpenseOcc = rec ? (rec.type==='expense') : true;
+    var showCardToggle = isExpenseOcc && data.card && data.card.enabled;
+    if(showCardToggle){
+      if(modal.occOnCard===undefined) modal.occOnCard = (modal.fromCard!==undefined ? !!modal.fromCard : seriesOnCard);
+      sh.appendChild(rowToggle('Pays via '+(data.card.name||'Amex'), !!modal.occOnCard, function(v){ modal.occOnCard=v; }));
+      sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginTop:'6px',marginBottom:'14px',lineHeight:'1.4'}},'On: folds into the statement. Off: shows in the forecast as a normal expense \u2014 just this one time.'));
+    }
     sh.appendChild(el('button',{class:'btn btn-accent',onClick:function(){
       var a=parseFloat(modal.amount); if(isNaN(a))return;
       var moved = modal.newDate && modal.newDate!==modal.date;
-      if(moved){
-        // Move just this instance: suppress the original occurrence, then emit a one-off at the
-        // new date carrying this amount and inheriting the series' Amex flag. Mirrors how debt
-        // date-overrides work. The series itself is untouched.
+      var cardFlagChanged = showCardToggle && (!!modal.occOnCard !== seriesOnCard);
+      if(moved || cardFlagChanged){
+        // Convert this single instance to a one-off: suppress the original occurrence, emit a
+        // one-off at the (possibly new) date with the chosen Amex flag. If the flag is off, it
+        // lands in the forecast; if on, it folds into the statement. Series is untouched.
         data.skips[key]=true;
         data.oneOffs=data.oneOffs||[];
-        data.oneOffs.push({ id:genId(), date:modal.newDate, name:(rec?rec.name:modal.name), type:(rec?rec.type:'expense'), amount:a, onCard:(rec?!!rec.onCard:false), _movedFrom:key });
+        var keepOnCard = showCardToggle ? !!modal.occOnCard : (rec?!!rec.onCard:false);
+        data.oneOffs.push({ id:genId(), date:(modal.newDate||modal.date), name:(rec?rec.name:modal.name), type:(rec?rec.type:'expense'), amount:a, onCard:keepOnCard, _movedFrom:key });
       } else {
         if(!data.overrides)data.overrides={}; data.overrides[key]=a;
       }
@@ -1610,9 +1622,9 @@
           if(ckey!==roles.nextKey && (manualMap[ckey]||0)>0) return true;
           return false;
         }
-        function addLine(ck,name,date,amt,covered,okey){ if(!breakdownByCycle[ck])breakdownByCycle[ck]=[]; breakdownByCycle[ck].push({name:name,date:date,sum:amt,covered:covered,okey:okey}); }
+        function addLine(ck,name,date,amt,covered,okey,ooId){ if(!breakdownByCycle[ck])breakdownByCycle[ck]=[]; breakdownByCycle[ck].push({name:name,date:date,sum:amt,covered:covered,okey:okey,ooId:ooId||null}); }
         data.recurring.forEach(function(it){ if(it.onCard&&it.type==='expense'){ occurrences(it,addDays(today,-40),scanEnd).forEach(function(d){ var k=it.id+'|'+d; if(data.skips&&data.skips[k])return; var ov=data.overrides?data.overrides[k]:undefined; var amt=(ov!==undefined&&ov!==null)?ov:it.amount; var c=cycleFor(parseISO(d),ss); var passed=parseISO(d)<=today; var covered=isCovered(c.key,passed); if(!covered) flaggedByCycle[c.key]=(flaggedByCycle[c.key]||0)+amt; if(!passed) futureFlaggedByCycle[c.key]=(futureFlaggedByCycle[c.key]||0)+amt; addLine(c.key,it.name,d,amt,covered,k); }); } });
-        (data.oneOffs||[]).forEach(function(o){ if(o.onCard&&o.type==='expense'){ var c=cycleFor(parseISO(o.date),ss); var passed=parseISO(o.date)<=today; var covered=isCovered(c.key,passed); if(!covered) flaggedByCycle[c.key]=(flaggedByCycle[c.key]||0)+o.amount; if(!passed) futureFlaggedByCycle[c.key]=(futureFlaggedByCycle[c.key]||0)+o.amount; addLine(c.key,o.name||'One-off',o.date,o.amount,covered,'oneoff|'+(o.id||o.date)); } });
+        (data.oneOffs||[]).forEach(function(o){ if(o.onCard&&o.type==='expense'){ var c=cycleFor(parseISO(o.date),ss); var passed=parseISO(o.date)<=today; var covered=isCovered(c.key,passed); if(!covered) flaggedByCycle[c.key]=(flaggedByCycle[c.key]||0)+o.amount; if(!passed) futureFlaggedByCycle[c.key]=(futureFlaggedByCycle[c.key]||0)+o.amount; addLine(c.key,o.name||'One-off',o.date,o.amount,covered,'oneoff|'+(o.id||o.date),o.id); } });
       })();
       var loopC=cycleFor(today,ss);
       for(var ci=0;ci<6;ci++){
@@ -1672,7 +1684,24 @@
               ]);
               var amtCell = el('div',{class:'mono',style:{fontSize:'13px',flexShrink:'0',color:(it.covered||fullyConsumed)?C.textFaint:amtColor,textDecoration:(it.covered||fullyConsumed)?'line-through':'none'}},fmt(it.sum,data.currency));
               var rowEl;
-              if(canConsume){
+              if(it.ooId){
+                // One-off purchase: tappable in ANY cycle to edit or delete it.
+                rowEl=el('button',{style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'7px 17px',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',borderBottom:'none',textAlign:'left'},onClick:(function(id){ return function(){
+                  var o=(data.oneOffs||[]).filter(function(x){return x.id===id;})[0];
+                  if(o){ modal={type:'editOneoff',id:o.id,name:o.name,amount:String(o.amount),ttype:o.type,date:o.date,onCard:!!o.onCard}; render(); }
+                }; })(it.ooId)});
+                rowEl.appendChild(nameCell); rowEl.appendChild(amtCell);
+              } else if(!passed && it.okey && it.okey.indexOf('|')>0){
+                // Recurring occurrence, today or future: tappable to edit THIS instance's date/amount.
+                // Opens the occurrence sheet (skip-original + one-off mechanism). The sheet's
+                // "Pays via Amex" toggle lets it stay on the card or move into the forecast.
+                rowEl=el('button',{style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'7px 17px',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',borderBottom:'none',textAlign:'left'},onClick:(function(okey,nm,dt,sm){ return function(){
+                  var rid=okey.split('|')[0];
+                  modal={type:'occ', recurringId:rid, key:okey, name:nm, date:dt, amount:sm, fromCard:true};
+                  render();
+                }; })(it.okey,it.name,it.date,it.sum)});
+                rowEl.appendChild(nameCell); rowEl.appendChild(amtCell);
+              } else if(canConsume){
                 rowEl=el('button',{style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'10px',padding:'7px 17px',borderTop:'1px solid '+C.lineSoft,background:'none',border:'none',borderBottom:'none',textAlign:'left'},onClick:function(){ modal={type:'consume',okey:it.okey,name:it.name,date:it.date,sum:it.sum}; render(); }});
                 rowEl.appendChild(nameCell); rowEl.appendChild(amtCell);
               } else {
