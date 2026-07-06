@@ -4,7 +4,7 @@
    - Offline: serves the last cached copy, so the app still works with no connection.
    You normally do NOT need to bump CACHE_VERSION anymore — network-first means updates
    appear on their own. Bump it only if you want to force-clear the offline cache. */
-const CACHE_VERSION = 'wc-planner-v24';
+const CACHE_VERSION = 'wc-planner-v42';
 const ASSETS = [
   './',
   './index.html',
