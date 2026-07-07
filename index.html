@@ -99,7 +99,9 @@
   /* one-shot reveal for freshly expanded content (week items, statement breakdowns, editors) */
   .reveal { animation:reveal .26s cubic-bezier(.3,0,.2,1) both; }
   @keyframes reveal { from{ opacity:0; transform:translateY(-5px); } to{ opacity:1; transform:translateY(0); } }
-  .sheet-bg.closing { animation:fadeout .2s ease both; pointer-events:none; }
+  .sheet-bg.closing { animation:fadeout .2s ease both; pointer-events:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+  .sheet-bg.stay { animation:none; }
+  .sheet-bg.stay .sheet { animation:none; }
   .sheet-bg.closing .sheet { animation:slidedown .22s cubic-bezier(.4,0,.2,1) both; }
   @keyframes fadeout { from{opacity:1} to{opacity:0} }
   @keyframes slidedown { from{transform:translateY(0)} to{transform:translateY(105%)} }
@@ -123,7 +125,7 @@
 
 // Shown in the Manage-tab footer so you can SEE at a glance which version is live after a
 // deploy. IMPORTANT: keep this in sync with CACHE_VERSION in sw.js — bump both together.
-var APP_VERSION = 'v42';
+var APP_VERSION = 'v43';
 
 (function () {
 
@@ -1061,7 +1063,7 @@ var APP_VERSION = 'v42';
   var modal = null;
   var tab = 'planner'; // planner | card | settings
   var root = document.getElementById('root');
-  var stx = { nw:newItemBlank(), copied:false, importOpen:false, importText:'', importError:false, clipFail:false, importDone:false, ciBalance:undefined, ciDue:undefined, ciTotal:undefined, ciShowTotal:false,
+  var stx = { nw:newItemBlank(), copied:false, importOpen:false, importText:'', importError:false, clipFail:false, importDone:false, ciBalance:undefined, ciDue:undefined, ciTotal:undefined, ciShowDue:false,
               exportText:null, cardExpanded:{}, scrollToCycle:null, resetConfirm:false,
               debtExpanded:{}, debtAddOpen:false, dnew:{name:'',original:'',payment:'',startDate:'',paymentDay:1},
               moneySub:'savings', potAddOpen:false, pnew:{name:'',contribution:'',startBalance:'',startDate:'',paymentDay:1,target:'',targetDate:''}, showTotalBal:false,
@@ -1144,7 +1146,7 @@ var APP_VERSION = 'v42';
       else if(modal.type==='editDebtPeriod') sh2=renderDebtPeriodSheet();
       else if(modal.type==='editPot') sh2=renderPotSheet();
       else if(modal.type==='consume') sh2=renderConsumeSheet();
-      if(sh2){ root.appendChild(sh2); root._sheetNode=sh2; }
+      if(sh2){ if(modalKey===lastModalKey && sh2.classList) sh2.classList.add('stay'); root.appendChild(sh2); root._sheetNode=sh2; }
     }
     if(outgoingSheet){ root.appendChild(outgoingSheet); dismissSheet(outgoingSheet); }
     lastModalKey=modalKey;
@@ -1298,7 +1300,7 @@ var APP_VERSION = 'v42';
     }
 
     // hero balance — confident, large; tap to check in (replaces the removed center + button)
-    var hero=el('button',{class:'hero',style:{display:'block',width:'100%',textAlign:'left',border:'none',font:'inherit',color:'inherit',cursor:'pointer'},'aria-label':'Check in',onClick:function(){ modal={type:'checkin'}; stx.ciShowTotal=false; render(); }});
+    var hero=el('button',{class:'hero',style:{display:'block',width:'100%',textAlign:'left',border:'none',font:'inherit',color:'inherit',cursor:'pointer'},'aria-label':'Check in',onClick:function(){ modal={type:'checkin'}; stx.ciShowDue=false; render(); }});
     var ebRow=el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'10px',position:'relative'}});
     ebRow.appendChild(el('div',{class:'eyebrow'},'Balance today'));
     ebRow.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,fontWeight:'500'}},'Tap to update'));
@@ -1518,30 +1520,29 @@ var APP_VERSION = 'v42';
       sh.appendChild(el('div',{style:{fontSize:'14px',fontWeight:'700',marginBottom:'3px'}},(card.name||'Amex')));
       sh.appendChild(el('div',{style:{fontSize:'11px',color:C.textFaint,marginBottom:'14px',lineHeight:'1.4'}},'The figures from your '+(card.name||'Amex')+' app.'));
 
-      // Generated statement (the fixed bill, always shown)
-      sh.appendChild(el('div',{class:'label'},'Generated statement'));
-      var due=el('input',{class:'input mono',style:{marginBottom:'4px'},type:'number',inputmode:'decimal',value:(stx.ciDue!==undefined?stx.ciDue:(card.openingAmount||'')),placeholder:'0'});
-      due.addEventListener('input',function(e){ stx.ciDue=e.target.value; });
-      sh.appendChild(due);
-      sh.appendChild(el('div',{style:{fontSize:'10px',marginBottom:'14px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}},'The fixed bill from your last generated statement.'));
+      // Current balance — the live figure, always the primary field (mirrors the Amex tab)
+      sh.appendChild(el('div',{class:'label'},'Current balance'));
+      var tot=el('input',{class:'input mono',style:{marginBottom:'4px'},type:'number',inputmode:'decimal',value:(stx.ciTotal!==undefined?stx.ciTotal:((roles0.nextKey&&card.manual&&card.manual[roles0.nextKey])||'')),placeholder:'0'});
+      tot.addEventListener('input',function(e){ stx.ciTotal=e.target.value; });
+      sh.appendChild(tot);
+      sh.appendChild(el('div',{style:{fontSize:'10px',marginBottom:'14px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}},'Everything on the card today.'));
 
-      // Current balance — revealed by + 
-      var hasTotal = (roles0.nextKey && card.manual && card.manual[roles0.nextKey]>0);
-      var showTotal = stx.ciShowTotal || hasTotal;
-      if(!showTotal){
-        var link=el('button',{style:{display:'flex',alignItems:'center',gap:'7px',background:'none',border:'none',color:C.accent,fontSize:'13px',fontWeight:'600',padding:'2px 0'},onClick:function(){ stx.ciShowTotal=true; stx.animKey='ciTotal'; render(); }});
+      // Generated statement — behind a +, until one exists
+      var showDue = stx.ciShowDue || (card.openingAmount||0)>0;
+      if(!showDue){
+        var link=el('button',{style:{display:'flex',alignItems:'center',gap:'7px',background:'none',border:'none',color:C.accent,fontSize:'13px',fontWeight:'600',padding:'2px 0'},onClick:function(){ stx.ciShowDue=true; stx.animKey='ciDue'; render(); }});
         link.appendChild(svg(ICON3.plus,15,C.accent));
-        link.appendChild(document.createTextNode('Add current balance'));
+        link.appendChild(document.createTextNode('Add generated statement'));
         sh.appendChild(link);
-        sh.appendChild(el('div',{style:{fontSize:'10px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}},'Everything on the card right now, including spending since the statement generated.'));
+        sh.appendChild(el('div',{style:{fontSize:'10px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}},'The fixed bill \u2014 add it once your statement generates.'));
       } else {
-        var totWrap=el('div',(stx.animKey==='ciTotal')?{class:'reveal'}:null);
-        totWrap.appendChild(el('div',{class:'label'},'Current balance'));
-        var tot=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:(stx.ciTotal!==undefined?stx.ciTotal:((roles0.nextKey&&card.manual&&card.manual[roles0.nextKey])||'')),placeholder:'0'});
-        tot.addEventListener('input',function(e){ stx.ciTotal=e.target.value; });
-        totWrap.appendChild(tot);
-        totWrap.appendChild(el('div',{style:{fontSize:'10px',marginTop:'6px',color:C.textFaint}},'Everything on the card today.'));
-        sh.appendChild(totWrap);
+        var dueWrap=el('div',(stx.animKey==='ciDue')?{class:'reveal'}:null);
+        dueWrap.appendChild(el('div',{class:'label'},'Generated statement'));
+        var due=el('input',{class:'input mono',type:'number',inputmode:'decimal',value:(stx.ciDue!==undefined?stx.ciDue:(card.openingAmount||'')),placeholder:'0'});
+        due.addEventListener('input',function(e){ stx.ciDue=e.target.value; });
+        dueWrap.appendChild(due);
+        dueWrap.appendChild(el('div',{style:{fontSize:'10px',marginTop:'6px',color:C.textFaint,lineHeight:'1.4'}},'The fixed bill from your last generated statement.'));
+        sh.appendChild(dueWrap);
       }
     }
 
@@ -1553,15 +1554,13 @@ var APP_VERSION = 'v42';
       if(card && card.enabled!==false){
         if(stx.ciDue!==undefined){ var dv=parseFloat(stx.ciDue); card.openingAmount=isNaN(dv)?0:dv; }
         var roles1=currentAndNextCycleKeys(card, todayMidnight());
-        if(stx.ciShowTotal || (roles1.nextKey&&card.manual&&card.manual[roles1.nextKey]>0)){
-          if(stx.ciTotal!==undefined){ if(!card.manual)card.manual={}; var tv=parseFloat(stx.ciTotal); if(tv>0)card.manual[roles1.nextKey]=tv; else delete card.manual[roles1.nextKey]; }
-        }
+        if(stx.ciTotal!==undefined){ if(!card.manual)card.manual={}; var tv=parseFloat(stx.ciTotal); if(tv>0)card.manual[roles1.nextKey]=tv; else delete card.manual[roles1.nextKey]; }
       }
-      stx.ciBalance=undefined; stx.ciDue=undefined; stx.ciTotal=undefined; stx.ciShowTotal=false;
+      stx.ciBalance=undefined; stx.ciDue=undefined; stx.ciTotal=undefined; stx.ciShowDue=false;
       modal=null; saveData(data); if(root)root._bgBuilt=false; render();
     }},'Save');
     sh.appendChild(save);
-    sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ stx.ciBalance=undefined; stx.ciDue=undefined; stx.ciTotal=undefined; stx.ciShowTotal=false; modal=null; render(); }},'Cancel'));
+    sh.appendChild(el('button',{class:'btn btn-line',style:{marginTop:'8px'},onClick:function(){ stx.ciBalance=undefined; stx.ciDue=undefined; stx.ciTotal=undefined; stx.ciShowDue=false; modal=null; render(); }},'Cancel'));
 
     bg.appendChild(sh);
     return bg;
@@ -1697,7 +1696,7 @@ var APP_VERSION = 'v42';
       var current=totalBal||0;             // the live "everything on the card now"
       var sumBox=el('div',{class:'grp',style:{marginBottom:'16px',padding:'16px 17px'}});
       // main: current balance, tappable
-      var curBtn=el('button',{class:'pressable',style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'flex-start',background:'none',border:'none',textAlign:'left',padding:'0'},onClick:function(){ modal={type:'checkin'}; stx.ciShowTotal=true; render(); }});
+      var curBtn=el('button',{class:'pressable',style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'flex-start',background:'none',border:'none',textAlign:'left',padding:'0'},onClick:function(){ modal={type:'checkin'}; stx.ciShowDue=false; render(); }});
       var cl=el('div',null,[
         el('div',{class:'label',style:{marginBottom:'6px'}},'Current balance'),
         el('div',{class:'mono',style:{fontSize:'30px',fontWeight:'700',letterSpacing:'-.02em',color:current>0?C.text:C.textFaint}}, current>0?fmt(current,data.currency):'—')
@@ -1707,7 +1706,7 @@ var APP_VERSION = 'v42';
       sumBox.appendChild(curBtn);
       // divider + statement row (always available via +)
       sumBox.appendChild(el('div',{style:{borderTop:'1px solid '+C.lineSoft,margin:'14px 0 0'}}));
-      var stmtBtn=el('button',{class:'pressable',style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',background:'none',border:'none',textAlign:'left',padding:'14px 0 0'},onClick:function(){ modal={type:'checkin'}; stx.ciShowTotal=(current>0); render(); }});
+      var stmtBtn=el('button',{class:'pressable',style:{width:'100%',display:'flex',justifyContent:'space-between',alignItems:'center',background:'none',border:'none',textAlign:'left',padding:'14px 0 0'},onClick:function(){ modal={type:'checkin'}; stx.ciShowDue=true; stx.animKey='ciDue'; render(); }});
       if(stmt>0){
         stmtBtn.appendChild(el('div',null,[
           el('div',{style:{fontSize:'13px',fontWeight:'600'}},'Generated statement'),
